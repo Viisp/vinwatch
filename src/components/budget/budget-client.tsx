@@ -311,7 +311,7 @@ export function BudgetClient() {
         </div>
 
         {/* Right: summary + chart */}
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           {/* Summary */}
           <div className="grid grid-cols-2 gap-3">
             <Card className="bg-[#1a2d42] border-[#243552]">
@@ -391,7 +391,7 @@ export function BudgetClient() {
           )}
 
           {/* Chart */}
-          <Card className="bg-[#1a2d42] border-[#243552]">
+          <Card className="bg-[#1a2d42] border-[#243552] flex-1">
             <CardHeader>
               <CardTitle className="text-slate-100">Répartition budgétaire</CardTitle>
             </CardHeader>

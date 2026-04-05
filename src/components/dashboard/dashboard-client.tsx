@@ -5,7 +5,7 @@ import { HeroGeometric } from '@/components/ui/shape-landing-hero';
 import { ButtonColorful } from '@/components/ui/button-colorful';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/calculations';
-import { getCurrentMonthExpenses, getBudget, getAllCategories, getProfile } from '@/lib/storage';
+import { getCurrentMonthExpenses, getBudget, getAllCategories } from '@/lib/storage';
 import { type Expense } from '@/types';
 import { TrendingDown, Wallet, ReceiptText, PieChart, Clock, AlertTriangle } from 'lucide-react';
 import {
@@ -21,7 +21,6 @@ Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 export function DashboardClient() {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstanceRef = useRef<Chart | null>(null);
-  const [dashboardGradient, setDashboardGradient] = useState('');
   const [stats, setStats] = useState({
     totalDepensé: 0,
     solde: 0,
@@ -31,15 +30,6 @@ export function DashboardClient() {
   });
 
   useEffect(() => {
-    const profile = getProfile();
-    if (profile.dashboardGradient) setDashboardGradient(profile.dashboardGradient);
-
-    const handleProfileUpdate = () => {
-      const p = getProfile();
-      if (p.dashboardGradient) setDashboardGradient(p.dashboardGradient);
-    };
-    window.addEventListener('depenzo:profile-updated', handleProfileUpdate);
-
     const expenses = getCurrentMonthExpenses();
     const budget = getBudget();
     const allCategories = getAllCategories();
@@ -80,7 +70,6 @@ export function DashboardClient() {
       }
     }
 
-    return () => window.removeEventListener('depenzo:profile-updated', handleProfileUpdate);
   }, []);
 
   const quickLinks = [
@@ -91,9 +80,6 @@ export function DashboardClient() {
 
   return (
     <div className="relative">
-      {dashboardGradient && (
-        <div className="fixed inset-0 -z-10 transition-all duration-700" style={{ background: dashboardGradient }} />
-      )}
       <HeroGeometric />
 
       <div className="mx-auto max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">

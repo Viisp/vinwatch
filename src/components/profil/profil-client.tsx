@@ -4,11 +4,7 @@ import { useRouter } from 'next/navigation';
 import { User, Pencil, Check, X, LogOut, Mail, KeyRound, Camera } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { getProfile, saveProfile } from '@/lib/storage';
-import { GradientPicker } from '@/components/ui/gradient-picker';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-
-const DEFAULT_BANNER = 'linear-gradient(135deg, #1a2d42 0%, #243552 100%)';
-const DEFAULT_DASHBOARD = 'linear-gradient(135deg, #0d1b2a 0%, #1a2d42 100%)';
 
 function resizeImage(file: File, size = 200): Promise<string> {
   return new Promise((resolve) => {
@@ -36,8 +32,6 @@ export function ProfilClient() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [pseudo, setPseudo] = useState('');
   const [customAvatar, setCustomAvatar] = useState('');
-  const [bannerGradient, setBannerGradient] = useState(DEFAULT_BANNER);
-  const [dashboardGradient, setDashboardGradient] = useState(DEFAULT_DASHBOARD);
   const [editingName, setEditingName] = useState(false);
   const [draft, setDraft] = useState('');
   const [pwStatus, setPwStatus] = useState<'idle' | 'sent' | 'loading'>('idle');
@@ -51,8 +45,6 @@ export function ProfilClient() {
     const profile = getProfile();
     setPseudo(profile.pseudo ?? '');
     setCustomAvatar(profile.customAvatar ?? '');
-    setBannerGradient(profile.bannerGradient ?? DEFAULT_BANNER);
-    setDashboardGradient(profile.dashboardGradient ?? DEFAULT_DASHBOARD);
   }, [router]);
 
   const startEdit = () => { setDraft(pseudo); setEditingName(true); };
@@ -70,16 +62,6 @@ export function ProfilClient() {
     const b64 = await resizeImage(file);
     setCustomAvatar(b64);
     saveProfile({ ...getProfile(), customAvatar: b64 });
-  };
-
-  const handleBannerChange = (gradient: string) => {
-    setBannerGradient(gradient);
-    saveProfile({ ...getProfile(), bannerGradient: gradient });
-  };
-
-  const handleDashboardChange = (gradient: string) => {
-    setDashboardGradient(gradient);
-    saveProfile({ ...getProfile(), dashboardGradient: gradient });
   };
 
   const handleResetPassword = async () => {
@@ -109,8 +91,7 @@ export function ProfilClient() {
       <div className="w-full max-w-md flex flex-col gap-4">
 
         {/* Avatar + nom éditable */}
-        <div className="rounded-2xl border border-[#243552] p-8 flex flex-col items-center gap-4 relative overflow-hidden"
-          style={{ background: bannerGradient }}>
+        <div className="rounded-2xl bg-[#1a2d42] border border-[#243552] p-8 flex flex-col items-center gap-4">
 
           {/* Photo cliquable via label (iOS-safe) */}
           <label htmlFor="avatar-input" className="relative group cursor-pointer">
@@ -119,11 +100,11 @@ export function ProfilClient() {
               <img
                 src={avatarSrc}
                 alt="Avatar"
-                className="w-20 h-20 rounded-full object-cover ring-2 ring-white/30"
+                className="w-20 h-20 rounded-full object-cover ring-2 ring-[#00c896]/40"
               />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-black/20 flex items-center justify-center ring-2 ring-white/20">
-                <User className="w-9 h-9 text-white/60" />
+              <div className="w-20 h-20 rounded-full bg-[#243552] flex items-center justify-center ring-2 ring-[#00c896]/40">
+                <User className="w-9 h-9 text-slate-400" />
               </div>
             )}
             <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -141,33 +122,21 @@ export function ProfilClient() {
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') confirmEdit(); if (e.key === 'Escape') cancelEdit(); }}
                 placeholder="Ton pseudo..."
-                className="px-3 py-1.5 rounded-xl bg-black/30 border border-white/20 text-white placeholder-white/40 text-sm text-center focus:outline-none focus:border-white/50 transition-colors"
+                className="px-3 py-1.5 rounded-xl bg-[#0d1b2a] border border-[#243552] text-slate-100 placeholder-slate-500 text-sm text-center focus:outline-none focus:border-[#00c896] transition-colors"
               />
-              <button onClick={confirmEdit} className="p-1.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors">
+              <button onClick={confirmEdit} className="p-1.5 rounded-lg bg-[#00c896]/20 text-[#00c896] hover:bg-[#00c896]/30 transition-colors">
                 <Check className="w-4 h-4" />
               </button>
-              <button onClick={cancelEdit} className="p-1.5 rounded-lg bg-black/20 text-white/60 hover:text-white transition-colors">
+              <button onClick={cancelEdit} className="p-1.5 rounded-lg bg-[#243552] text-slate-400 hover:text-slate-200 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
           ) : (
-            <button onClick={startEdit} className="group flex items-center gap-1.5 text-xl font-bold text-white hover:text-white/80 transition-colors drop-shadow">
+            <button onClick={startEdit} className="group flex items-center gap-1.5 text-xl font-bold text-slate-100 hover:text-[#00c896] transition-colors">
               {displayName}
               <Pencil className="w-4 h-4 opacity-0 group-hover:opacity-60 transition-opacity" />
             </button>
           )}
-        </div>
-
-        {/* Personnalisation bannière */}
-        <div className="rounded-2xl bg-[#1a2d42] border border-[#243552] p-5">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Bannière du profil</p>
-          <GradientPicker value={bannerGradient} onChange={handleBannerChange} />
-        </div>
-
-        {/* Personnalisation dashboard */}
-        <div className="rounded-2xl bg-[#1a2d42] border border-[#243552] p-5">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Fond du tableau de bord</p>
-          <GradientPicker value={dashboardGradient} onChange={handleDashboardChange} />
         </div>
 
         {/* Email */}
