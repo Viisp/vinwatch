@@ -1,0 +1,753 @@
+You are given a task to integrate an existing React component in the codebase
+
+The codebase should support:
+- shadcn project structure  
+- Tailwind CSS
+- Typescript
+
+If it doesn't, provide instructions on how to setup project via shadcn CLI, install Tailwind or Typescript.
+
+Determine the default path for components and styles. 
+If default path for components is not /components/ui, provide instructions on why it's important to create this folder
+Copy-paste this component to /components/ui folder:
+```tsx
+graaadeints.tsx
+"use client";
+
+import * as React from "react"
+
+import { useEffect, useRef, useState } from "react";
+import { Slider } from "@/components/ui/slider";
+import { DIcons } from "dicons";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch"; 
+
+type ColorStop = {
+  color: string;
+  position: number;
+};
+
+const defaultColorStops: ColorStop[] = [
+  { color: "#00e1ff", position: 0 },
+  { color: "#0000ff", position: 100 },
+];
+
+export function GradientGenerator() {
+  const [colorStops, setColorStops] = useState<ColorStop[]>(defaultColorStops);
+  const [angle, setAngle] = useState(90);
+  const [noiseAmount, setNoiseAmount] = useState(0);
+  const [applyNoise, setApplyNoise] = useState(false);
+  const [isRadialGradient, setIsRadialGradient] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const displayCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const gradientString = colorStops
+    .map((stop) => `${stop.color} ${stop.position}%`)
+    .join(", ");
+
+  const gradientStyle = {
+    background: !isRadialGradient
+      ? `linear-gradient(${angle}deg, ${gradientString})`
+      : `radial-gradient(circle, ${gradientString})`,
+  };
+
+  const gradientCSS = !isRadialGradient
+    ? `background: linear-gradient(${angle}deg, ${gradientString});`
+    : `background: radial-gradient(circle, ${gradientString});`;
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(gradientCSS).then(() => {
+      
+    });
+  };
+
+  useEffect(() => {
+    updateCanvas();
+  }, [colorStops, angle, noiseAmount, applyNoise, isRadialGradient]);
+
+  const updateCanvas = () => {
+    const canvas = canvasRef.current;
+    const displayCanvas = displayCanvasRef.current;
+    if (canvas && displayCanvas) {
+      const ctx = canvas.getContext("2d");
+      const displayCtx = displayCanvas.getContext("2d");
+      if (ctx && displayCtx) {
+        let gradient;
+        if (!isRadialGradient) {
+          gradient = ctx.createLinearGradient(
+            0,
+            0,
+            canvas.width,
+            canvas.height,
+          );
+        } else {
+          gradient = ctx.createRadialGradient(
+            canvas.width / 2,
+            canvas.height / 2,
+            0,
+            canvas.width / 2,
+            canvas.height / 2,
+            canvas.width / 2,
+          );
+        }
+
+        colorStops.forEach((stop) => {
+          gradient.addColorStop(stop.position / 100, stop.color);
+        });
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (applyNoise) {
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            const noise = (Math.random() - 0.5) * noiseAmount;
+            data[i] = Math.min(255, Math.max(0, data[i] + noise));
+            data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + noise));
+            data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + noise));
+          }
+          ctx.putImageData(imageData, 0, 0);
+        }
+
+        displayCtx.drawImage(
+          canvas,
+          0,
+          0,
+          displayCanvas.width,
+          displayCanvas.height,
+        );
+      }
+    }
+  };
+
+  const downloadJPG = () => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const dataURL = canvas.toDataURL("image/jpeg");
+      const link = document.createElement("a");
+      link.download = "gradient_with_noise.jpg";
+      link.href = dataURL;
+      link.click();
+    }
+  };
+
+  const addColorStop = () => {
+    if (colorStops.length < 5) {
+      const newPosition = Math.round(
+        (colorStops[colorStops.length - 1].position + colorStops[0].position) /
+          2,
+      );
+      setColorStops([
+        ...colorStops,
+        { color: "#ffffff", position: newPosition },
+      ]);
+    }
+  };
+
+  const removeColorStop = (index: number) => {
+    if (colorStops.length > 2) {
+      setColorStops(colorStops.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateColorStop = (index: number, color: string, position: number) => {
+    const newColorStops = [...colorStops];
+    newColorStops[index] = { color, position };
+    setColorStops(newColorStops.sort((a, b) => a.position - b.position));
+  };
+
+  const resetSettings = () => {
+    setColorStops(defaultColorStops);
+    setAngle(90);
+    setNoiseAmount(0);
+    setApplyNoise(false);
+    setIsRadialGradient(false);
+     
+  };
+
+  return (
+    <div className="mt-10 flex items-center justify-center  p-6 xl:p-0">
+      <div className="mx-auto w-full max-w-7xl space-y-2 rounded-2xl border-2 bg-popover/80 p-6">
+        <div className="flex flex-wrap justify-center gap-6">
+          <div className="relative">
+            <div
+              className="aspect-square h-full w-60 rounded-md md:w-80"
+              style={gradientStyle}
+            ></div>
+            <canvas
+              ref={displayCanvasRef}
+              width={1000}
+              height={1000}
+              className="absolute left-0 top-0 aspect-square h-full w-60 rounded-md mix-blend-overlay md:w-80"
+            />
+          </div>
+          <div className="grid w-full flex-1 gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {colorStops.map((stop, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="relative flex w-full max-w-[40px] items-center gap-3">
+                    <label
+                      htmlFor={`color-${index}`}
+                      className="text-lg font-bold"
+                    >
+                      <div
+                        className="border-ali size-10 cursor-pointer rounded-full border-2"
+                        style={{ backgroundColor: stop.color }}
+                      />
+                    </label>
+                    <Input
+                      className="absolute left-0 top-3 opacity-0"
+                      type="color"
+                      id={`color-${index}`}
+                      value={stop.color}
+                      onChange={(e) =>
+                        updateColorStop(index, e.target.value, stop.position)
+                      }
+                    />
+                  </div>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={stop.position}
+                    onChange={(e) =>
+                      updateColorStop(index, stop.color, Number(e.target.value))
+                    }
+                    className="w-16"
+                  />
+                  {colorStops.length > 2 && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeColorStop(index)}
+                    >
+                      <DIcons.Minus className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {colorStops.length < 5 && (
+                <Button variant="outline" size="icon" onClick={addColorStop}>
+                  <DIcons.Plus className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Label className={!isRadialGradient ? "font-medium" : ""}>
+                  Linear
+                </Label>
+                <Switch
+                  id="gradient-type"
+                  checked={isRadialGradient}
+                  onCheckedChange={(checked) => setIsRadialGradient(checked)}
+                />
+                <Label className={isRadialGradient ? "font-medium" : ""}>
+                  Radial
+                </Label>
+              </div>
+              {!isRadialGradient && (
+                <div className="flex w-full items-center gap-2">
+                  <Label className="w-auto" htmlFor="angle">
+                    Angle
+                  </Label>
+                  <Slider
+                    id="angle"
+                    value={[angle]}
+                    defaultValue={[33]}
+                    min={0}
+                    max={360}
+                    className="w-full"
+                    onValueChange={(value) => setAngle(Number(value))}
+                  />
+                  <Label className="w-auto" htmlFor="angle">
+                    {angle}°
+                  </Label>
+                </div>
+              )}
+            </div>
+
+            <div className="flex w-full items-center gap-2">
+              <Switch
+                id="apply-noise"
+                checked={applyNoise}
+                onCheckedChange={setApplyNoise}
+              />
+              <Label className="w-auto" htmlFor="apply-noise">
+                Noise
+              </Label>
+              {applyNoise && (
+                <div className="flex w-full gap-2">
+                  <Slider
+                    id="noise"
+                    defaultValue={[33]}
+                    min={0}
+                    max={200}
+                    value={[noiseAmount]}
+                    className="w-full"
+                    onValueChange={(value) => setNoiseAmount(Number(value))}
+                  />
+                  <Label className="w-auto" htmlFor="noise">
+                    {noiseAmount}
+                  </Label>
+                </div>
+              )}
+            </div>
+            <div className="grid gap-2">
+              <div>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <Label htmlFor="css">CSS Code</Label>
+                  <Input
+                    id="css"
+                    value={gradientCSS}
+                    readOnly
+                    className="w-auto flex-grow"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={copyToClipboard}
+                  >
+                    <DIcons.Copy className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={downloadJPG} className="">
+                    Download JPG
+                  </Button>
+                  <Button
+                    size="icon"
+                    onClick={resetSettings}
+                    variant="secondary"
+                  >
+                    <DIcons.RotateCw />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <canvas
+        ref={canvasRef}
+        width="1000"
+        height="1000"
+        style={{ display: "none" }}
+      />
+    </div>
+  );
+}
+
+
+demo.tsx
+import Image from "next/image";
+import Link from "next/link";
+import { GradientGenerator } from "@/components/ui/graaadeints"
+
+import { cn } from "@/lib/utils";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button"; 
+ 
+export default function Gradients() {
+  return (
+    <div className="relative">
+      <div className=" my-40">
+        <div className="">
+          <Image
+            src="https://res.cloudinary.com/deelfmnhg/image/upload/v1737474221/grad_mscerb.png"
+            alt="Your Image"
+            height={700}
+            width={700}
+            className="absolute -top-28 -z-10 min-h-screen w-full object-cover"
+          />
+          <p className="px-6 text-center text-lg font-light uppercase tracking-widest text-white lg:text-xl">
+            Introducing
+          </p>
+
+          <h1 className="text-center text-7xl tracking-tighter text-white sm:text-9xl">
+            Graaadients
+          </h1>
+          <p className="mx-auto max-w-lg px-6 text-center text-sm font-light text-white lg:-mt-4 lg:text-lg">
+            +5000 abstract gradient elements and backgrounds for your amazing
+            design projects.
+          </p>
+        </div>
+        <div className="mt-10 flex justify-center">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink
+                  href="/"
+                  className="text-slate-200 hover:text-white"
+                >
+                  Home
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="text-slate-200" />
+              <BreadcrumbItem>
+                <BreadcrumbLink
+                  href="/products"
+                  className="text-slate-200 hover:text-white"
+                >
+                  Products
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="text-slate-200" />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="text-white">
+                  Graaadients
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+        <GradientGenerator />
+
+        <p className="ml-2 mt-6 text-center font-semibold ">
+          All gradients are 100% free.
+        </p>
+        
+      </div>
+    </div>
+  );
+}
+
+export  {Gradients}
+
+```
+
+Copy-paste these files for dependencies:
+```tsx
+shadcn/button
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline:
+          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+        icon: "h-10 w-10",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  },
+)
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    )
+  },
+)
+Button.displayName = "Button"
+
+export { Button, buttonVariants }
+
+```
+```tsx
+shadcn/input
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, ...props }, ref) => {
+    return (
+      <input
+        type={type}
+        className={cn(
+          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          className
+        )}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)
+Input.displayName = "Input"
+
+export { Input }
+
+```
+```tsx
+shadcn/label
+"use client"
+
+import * as React from "react"
+import * as LabelPrimitive from "@radix-ui/react-label"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
+
+const labelVariants = cva(
+  "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+)
+
+const Label = React.forwardRef<
+  React.ElementRef<typeof LabelPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> &
+    VariantProps<typeof labelVariants>
+>(({ className, ...props }, ref) => (
+  <LabelPrimitive.Root
+    ref={ref}
+    className={cn(labelVariants(), className)}
+    {...props}
+  />
+))
+Label.displayName = LabelPrimitive.Root.displayName
+
+export { Label }
+
+```
+```tsx
+shadcn/switch
+"use client"
+
+import * as React from "react"
+import * as SwitchPrimitives from "@radix-ui/react-switch"
+
+import { cn } from "@/lib/utils"
+
+const Switch = React.forwardRef<
+  React.ElementRef<typeof SwitchPrimitives.Root>,
+  React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
+>(({ className, ...props }, ref) => (
+  <SwitchPrimitives.Root
+    className={cn(
+      "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
+      className,
+    )}
+    {...props}
+    ref={ref}
+  >
+    <SwitchPrimitives.Thumb
+      className={cn(
+        "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
+      )}
+    />
+  </SwitchPrimitives.Root>
+))
+Switch.displayName = SwitchPrimitives.Root.displayName
+
+export { Switch }
+
+```
+```tsx
+shadcn/slider
+"use client"
+
+import * as React from "react"
+import * as SliderPrimitive from "@radix-ui/react-slider"
+
+import { cn } from "@/lib/utils"
+
+const Slider = React.forwardRef<
+  React.ElementRef<typeof SliderPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <SliderPrimitive.Root
+    ref={ref}
+    className={cn(
+      "relative flex w-full touch-none select-none items-center",
+      className,
+    )}
+    {...props}
+  >
+    <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary">
+      <SliderPrimitive.Range className="absolute h-full bg-primary" />
+    </SliderPrimitive.Track>
+    <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50" />
+  </SliderPrimitive.Root>
+))
+Slider.displayName = SliderPrimitive.Root.displayName
+
+export { Slider }
+
+```
+```tsx
+shadcn/breadcrumb
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { ChevronRight, MoreHorizontal } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+
+const Breadcrumb = React.forwardRef<
+  HTMLElement,
+  React.ComponentPropsWithoutRef<"nav"> & {
+    separator?: React.ReactNode
+  }
+>(({ ...props }, ref) => <nav ref={ref} aria-label="breadcrumb" {...props} />)
+Breadcrumb.displayName = "Breadcrumb"
+
+const BreadcrumbList = React.forwardRef<
+  HTMLOListElement,
+  React.ComponentPropsWithoutRef<"ol">
+>(({ className, ...props }, ref) => (
+  <ol
+    ref={ref}
+    className={cn(
+      "flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground sm:gap-2.5",
+      className,
+    )}
+    {...props}
+  />
+))
+BreadcrumbList.displayName = "BreadcrumbList"
+
+const BreadcrumbItem = React.forwardRef<
+  HTMLLIElement,
+  React.ComponentPropsWithoutRef<"li">
+>(({ className, ...props }, ref) => (
+  <li
+    ref={ref}
+    className={cn("inline-flex items-center gap-1.5", className)}
+    {...props}
+  />
+))
+BreadcrumbItem.displayName = "BreadcrumbItem"
+
+const BreadcrumbLink = React.forwardRef<
+  HTMLAnchorElement,
+  React.ComponentPropsWithoutRef<"a"> & {
+    asChild?: boolean
+  }
+>(({ asChild, className, ...props }, ref) => {
+  const Comp = asChild ? Slot : "a"
+
+  return (
+    <Comp
+      ref={ref}
+      className={cn("transition-colors hover:text-foreground", className)}
+      {...props}
+    />
+  )
+})
+BreadcrumbLink.displayName = "BreadcrumbLink"
+
+const BreadcrumbPage = React.forwardRef<
+  HTMLSpanElement,
+  React.ComponentPropsWithoutRef<"span">
+>(({ className, ...props }, ref) => (
+  <span
+    ref={ref}
+    role="link"
+    aria-disabled="true"
+    aria-current="page"
+    className={cn("font-normal text-foreground", className)}
+    {...props}
+  />
+))
+BreadcrumbPage.displayName = "BreadcrumbPage"
+
+const BreadcrumbSeparator = ({
+  children,
+  className,
+  ...props
+}: React.ComponentProps<"li">) => (
+  <li
+    role="presentation"
+    aria-hidden="true"
+    className={cn("[&>svg]:size-3.5", className)}
+    {...props}
+  >
+    {children ?? <ChevronRight />}
+  </li>
+)
+BreadcrumbSeparator.displayName = "BreadcrumbSeparator"
+
+const BreadcrumbEllipsis = ({
+  className,
+  ...props
+}: React.ComponentProps<"span">) => (
+  <span
+    role="presentation"
+    aria-hidden="true"
+    className={cn("flex h-9 w-9 items-center justify-center", className)}
+    {...props}
+  >
+    <MoreHorizontal className="h-4 w-4" />
+    <span className="sr-only">More</span>
+  </span>
+)
+BreadcrumbEllipsis.displayName = "BreadcrumbElipssis"
+
+export {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+  BreadcrumbEllipsis,
+}
+
+```
+
+Install NPM dependencies:
+```bash
+dicons, @radix-ui/react-slot, class-variance-authority, @radix-ui/react-label, @radix-ui/react-switch, @radix-ui/react-slider, lucide-react
+```
+
+Implementation Guidelines
+ 1. Analyze the component structure and identify all required dependencies
+ 2. Review the component's argumens and state
+ 3. Identify any required context providers or hooks and install them
+ 4. Questions to Ask
+ - What data/props will be passed to this component?
+ - Are there any specific state management requirements?
+ - Are there any required assets (images, icons, etc.)?
+ - What is the expected responsive behavior?
+ - What is the best place to use this component in the app?
+
+Steps to integrate
+ 0. Copy paste all the code above in the correct directories
+ 1. Install external dependencies
+ 2. Fill image assets with Unsplash stock images you know exist
+ 3. Use lucide-react icons for svgs or logos if component requires them

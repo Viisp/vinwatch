@@ -1,0 +1,230 @@
+You are given a task to integrate an existing React component in the codebase
+
+The codebase should support:
+- shadcn project structure  
+- Tailwind CSS
+- Typescript
+
+If it doesn't, provide instructions on how to setup project via shadcn CLI, install Tailwind or Typescript.
+
+Determine the default path for components and styles. 
+If default path for components is not /components/ui, provide instructions on why it's important to create this folder
+Copy-paste this component to /components/ui folder:
+```tsx
+emoji-picker.tsx
+"use client";
+
+import {
+  type EmojiPickerListCategoryHeaderProps,
+  type EmojiPickerListEmojiProps,
+  type EmojiPickerListRowProps,
+  EmojiPicker as EmojiPickerPrimitive,
+} from "frimousse";
+import { LoaderIcon, SearchIcon } from "lucide-react";
+import type * as React from "react";
+
+import { cn } from "@/lib/utils";
+
+function EmojiPicker({
+  className,
+  ...props
+}: React.ComponentProps<typeof EmojiPickerPrimitive.Root>) {
+  return (
+    <EmojiPickerPrimitive.Root
+      className={cn(
+        "bg-popover text-popover-foreground isolate flex h-full w-fit flex-col overflow-hidden rounded-md",
+        className
+      )}
+      data-slot="emoji-picker"
+      {...props}
+    />
+  );
+}
+
+function EmojiPickerSearch({
+  className,
+  ...props
+}: React.ComponentProps<typeof EmojiPickerPrimitive.Search>) {
+  return (
+    <div
+      className={cn("flex h-9 items-center gap-2 border-b px-3", className)}
+      data-slot="emoji-picker-search-wrapper"
+    >
+      <SearchIcon className="size-4 shrink-0 opacity-50" />
+      <EmojiPickerPrimitive.Search
+        className="outline-hidden placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+        data-slot="emoji-picker-search"
+        {...props}
+      />
+    </div>
+  );
+}
+
+function EmojiPickerRow({ children, ...props }: EmojiPickerListRowProps) {
+  return (
+    <div {...props} className="scroll-my-1 px-1" data-slot="emoji-picker-row">
+      {children}
+    </div>
+  );
+}
+
+function EmojiPickerEmoji({
+  emoji,
+  className,
+  ...props
+}: EmojiPickerListEmojiProps) {
+  return (
+    <button
+      {...props}
+      className={cn(
+        "data-[active]:bg-accent flex size-7 items-center justify-center rounded-sm text-base",
+        className
+      )}
+      data-slot="emoji-picker-emoji"
+    >
+      {emoji.emoji}
+    </button>
+  );
+}
+
+function EmojiPickerCategoryHeader({
+  category,
+  ...props
+}: EmojiPickerListCategoryHeaderProps) {
+  return (
+    <div
+      {...props}
+      className="bg-popover text-muted-foreground px-3 pb-2 pt-3.5 text-xs leading-none"
+      data-slot="emoji-picker-category-header"
+    >
+      {category.label}
+    </div>
+  );
+}
+
+function EmojiPickerContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof EmojiPickerPrimitive.Viewport>) {
+  return (
+    <EmojiPickerPrimitive.Viewport
+      className={cn("outline-hidden relative flex-1", className)}
+      data-slot="emoji-picker-viewport"
+      {...props}
+    >
+      <EmojiPickerPrimitive.Loading
+        className="absolute inset-0 flex items-center justify-center text-muted-foreground"
+        data-slot="emoji-picker-loading"
+      >
+        <LoaderIcon className="size-4 animate-spin" />
+      </EmojiPickerPrimitive.Loading>
+      <EmojiPickerPrimitive.Empty
+        className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm"
+        data-slot="emoji-picker-empty"
+      >
+        No emoji found.
+      </EmojiPickerPrimitive.Empty>
+      <EmojiPickerPrimitive.List
+        className="select-none pb-1"
+        components={{
+          Row: EmojiPickerRow,
+          Emoji: EmojiPickerEmoji,
+          CategoryHeader: EmojiPickerCategoryHeader,
+        }}
+        data-slot="emoji-picker-list"
+      />
+    </EmojiPickerPrimitive.Viewport>
+  );
+}
+
+function EmojiPickerFooter({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={cn(
+        "max-w-(--frimousse-viewport-width) flex w-full min-w-0 items-center gap-1 border-t p-2",
+        className
+      )}
+      data-slot="emoji-picker-footer"
+      {...props}
+    >
+      <EmojiPickerPrimitive.ActiveEmoji>
+        {({ emoji }) =>
+          emoji ? (
+            <>
+              <div className="flex size-7 flex-none items-center justify-center text-lg">
+                {emoji.emoji}
+              </div>
+              <span className="text-secondary-foreground truncate text-xs">
+                {emoji.label}
+              </span>
+            </>
+          ) : (
+            <span className="text-muted-foreground ml-1.5 flex h-7 items-center truncate text-xs">
+              Select an emoji…
+            </span>
+          )
+        }
+      </EmojiPickerPrimitive.ActiveEmoji>
+    </div>
+  );
+}
+
+export {
+  EmojiPicker,
+  EmojiPickerSearch,
+  EmojiPickerContent,
+  EmojiPickerFooter,
+};
+
+demo.tsx
+"use client";
+
+import * as React from "react";
+
+import {
+  EmojiPicker,
+  EmojiPickerSearch,
+  EmojiPickerContent,
+} from "@/components/ui/emoji-picker";
+
+export function Page() {
+  return (
+    <main className="flex h-full min-h-screen w-full items-center justify-center p-4">
+      <EmojiPicker
+        className="h-[326px] rounded-lg border shadow-md"
+        onEmojiSelect={({ emoji }) => {
+          console.log(emoji);
+        }}
+      >
+        <EmojiPickerSearch />
+        <EmojiPickerContent />
+      </EmojiPicker>
+    </main>
+  );
+}
+```
+
+Install NPM dependencies:
+```bash
+frimousse, lucide-react
+```
+
+Implementation Guidelines
+ 1. Analyze the component structure and identify all required dependencies
+ 2. Review the component's argumens and state
+ 3. Identify any required context providers or hooks and install them
+ 4. Questions to Ask
+ - What data/props will be passed to this component?
+ - Are there any specific state management requirements?
+ - Are there any required assets (images, icons, etc.)?
+ - What is the expected responsive behavior?
+ - What is the best place to use this component in the app?
+
+Steps to integrate
+ 0. Copy paste all the code above in the correct directories
+ 1. Install external dependencies
+ 2. Fill image assets with Unsplash stock images you know exist
+ 3. Use lucide-react icons for svgs or logos if component requires them
