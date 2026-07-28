@@ -1,8 +1,8 @@
-# Dashboard Vinted (Ventes/Achats) — Implementation Plan
+# VinWatch (Dashboard Vinted Ventes/Achats) — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Transform Depenzo (an unused personal-finance app) into a private Vinted sales/purchases dashboard, reusing its UI/auth/Supabase infrastructure.
+**Goal:** Transform Depenzo (an unused personal-finance app) into VinWatch, a private Vinted sales/purchases dashboard, reusing its UI/auth/Supabase infrastructure.
 
 **Architecture:** Next.js switches from static export to a real server (Vercel), gaining an API route triggered by Vercel Cron. That route replays a full Vinted cookie jar (pasted once by the user) through a serverless headless browser, extracts the `preloadedOrders` JSON embedded in `/my_orders` page HTML, and upserts rows into new Supabase tables. The dashboard pages read those tables directly (no more localStorage-first pattern for this data).
 
@@ -42,12 +42,17 @@ Authentication requires the **full Vinted cookie jar** from a real logged-in bro
 
 ---
 
-### Task 1: Enable server features (remove static export)
+### Task 1: Enable server features (remove static export), rename to VinWatch
 
 **Files:**
 - Modify: `next.config.ts`
+- Modify: `package.json`
 
-- [ ] **Step 1: Remove `output: "export"`**
+- [ ] **Step 1: Rename the package**
+
+In `package.json`, change `"name": "depenzo"` to `"name": "vinwatch"`.
+
+- [ ] **Step 2: Remove `output: "export"`**
 
 Replace the full contents of `next.config.ts` with:
 
@@ -64,16 +69,16 @@ export default nextConfig;
 
 (`trailingSlash: true` is removed too — it was there to make static export work with most static hosts; not needed once Next.js serves routes itself.)
 
-- [ ] **Step 2: Verify the app still builds**
+- [ ] **Step 3: Verify the app still builds**
 
 Run: `npm run build`
 Expected: Build succeeds, output says "Route (app)" listing pages (not "export" mode).
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add next.config.ts
-git commit -m "chore: switch from static export to server mode for API routes"
+git add next.config.ts package.json
+git commit -m "chore: switch from static export to server mode, rename package to vinwatch"
 ```
 
 ---
@@ -801,14 +806,14 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: 'Vinted Dashboard — Suivi des ventes et achats',
+  title: 'VinWatch — Suivi des ventes et achats Vinted',
   description: 'Suivez automatiquement vos ventes et achats Vinted.',
   icons: { icon: '/favicon.ico', apple: '/logo.jpg' },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Vinted Dashboard',
+    title: 'VinWatch',
   },
 };
 
@@ -874,15 +879,19 @@ const links = [
 
 Also remove the `<ExportModal />` import and usages (lines with `import { ExportModal }` and both `<ExportModal />` JSX usages) — it's rebuilt in Task 13 and re-added then.
 
-- [ ] **Step 2: Open `bottom-nav.tsx` and `expanding-nav.tsx`, update their link lists the same way**
+- [ ] **Step 2: Rename the logo text from "Depenzo" to "VinWatch"**
+
+In the same file, find `<span className="text-xl font-bold text-slate-100 tracking-tight">Depenzo</span>` and change `Depenzo` to `VinWatch`.
+
+- [ ] **Step 3: Open `bottom-nav.tsx` and `expanding-nav.tsx`, update their link lists the same way**
 
 These weren't read during planning — open them, find their equivalent hardcoded link/icon arrays (they'll reference `/depenses`, `/budget`, etc. same as `navbar.tsx` did), and replace with the same 4 links from Step 1. Match each file's existing icon-import pattern (e.g. if `expanding-nav.tsx` pairs each link with a `lucide-react` icon, pick reasonable icons: `LayoutDashboard` for Vue d'ensemble, `TrendingUp` for Ventes, `ShoppingBag` for Achats, `Settings` for Paramètres).
 
-- [ ] **Step 3: Verify no dangling imports remain**
+- [ ] **Step 4: Verify no dangling imports remain**
 
 Run: `npm run build` — expect the same missing-page errors as Task 10 Step 3 (not new navbar-related errors). If there are new errors from these two files, fix them before moving on.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add src/components/layout/navbar.tsx src/components/layout/bottom-nav.tsx src/components/layout/expanding-nav.tsx
