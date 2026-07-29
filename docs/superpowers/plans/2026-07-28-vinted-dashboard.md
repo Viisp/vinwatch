@@ -660,7 +660,7 @@ export async function GET(request: Request) {
 
   for (const session of sessions ?? []) {
     try {
-      const cookies = JSON.parse(decrypt(session.cookies_encrypted));
+      const cookies = JSON.parse(decrypt(session.cookies_encrypted, session.user_id));
 
       const [soldHtml, purchasedHtml] = await Promise.all([
         fetchOrdersHtml(cookies, 'sold'),
@@ -1366,7 +1366,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'cookies array is required' }, { status: 400 });
   }
 
-  const encrypted = encrypt(JSON.stringify(body.cookies));
+  const encrypted = encrypt(JSON.stringify(body.cookies), user.id);
 
   const { error } = await supabase
     .from('vinted_session')
