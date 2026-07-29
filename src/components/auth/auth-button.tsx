@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { LogIn, User, LogOut } from 'lucide-react';
+import Link from 'next/link';
+import { LogIn, User, LogOut, Settings } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -77,6 +78,14 @@ export function AuthButton() {
             <p className="text-xs font-semibold text-slate-100 truncate">{displayName}</p>
             <p className="text-xs text-slate-500 truncate">{user.email}</p>
           </div>
+          <Link
+            href="/parametres"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-300 hover:bg-[#243552] transition-colors"
+          >
+            <Settings className="w-4 h-4" />
+            Paramètres
+          </Link>
           <button
             onClick={handleSignOut}
             className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"

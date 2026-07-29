@@ -2,10 +2,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 const navLinks = [
-  { title: 'Vue d’ensemble', href: '/' },
+  { title: 'Dashboard', href: '/' },
   { title: 'Ventes', href: '/ventes' },
   { title: 'Achats', href: '/achats' },
-  { title: 'Paramètres', href: '/parametres' },
 ];
 
 export function FooterSection() {

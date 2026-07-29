@@ -143,7 +143,7 @@ export function DashboardClient() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-slate-400 flex items-center gap-2">
                 <Wallet className="w-4 h-4 text-[#00c896]" />
-                Delta
+                Solde
               </CardTitle>
             </CardHeader>
             <CardContent>

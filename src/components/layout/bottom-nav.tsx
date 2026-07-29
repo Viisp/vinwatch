@@ -1,14 +1,13 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, TrendingUp, ShoppingBag, Settings } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const tabs = [
-  { href: '/',          label: 'Vue d’ensemble', icon: LayoutDashboard },
-  { href: '/ventes',    label: 'Ventes',     icon: TrendingUp },
-  { href: '/achats',    label: 'Achats',     icon: ShoppingBag },
-  { href: '/parametres', label: 'Paramètres', icon: Settings },
+  { href: '/',       label: 'Dashboard',      icon: LayoutDashboard },
+  { href: '/ventes', label: 'Ventes',         icon: TrendingUp },
+  { href: '/achats', label: 'Achats',         icon: ShoppingBag },
 ];
 
 export function BottomNav() {
