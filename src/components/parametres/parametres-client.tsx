@@ -19,8 +19,17 @@ export function ParametresClient() {
   async function handleSave() {
     setSaving(true);
     setMessage(null);
+
+    let cookies: unknown;
     try {
-      const cookies = JSON.parse(cookiesJson);
+      cookies = JSON.parse(cookiesJson);
+    } catch {
+      setMessage('Erreur : format JSON invalide');
+      setSaving(false);
+      return;
+    }
+
+    try {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Non connecté');
@@ -33,10 +42,10 @@ export function ParametresClient() {
       if (!res.ok) throw new Error((await res.json()).error ?? 'Erreur inconnue');
 
       setMessage('Cookies enregistrés. La prochaine synchronisation les utilisera.');
-      setCookiesJson('');
     } catch (err) {
-      setMessage(`Erreur : ${err instanceof Error ? err.message : 'format JSON invalide'}`);
+      setMessage(`Erreur : ${err instanceof Error ? err.message : 'erreur inconnue'}`);
     } finally {
+      setCookiesJson('');
       setSaving(false);
     }
   }
@@ -73,6 +82,9 @@ export function ParametresClient() {
             Installe l&apos;extension <strong>Cookie-Editor</strong>, va sur vinted.fr connecté, ouvre
             l&apos;extension, clique sur «&nbsp;Export&nbsp;» → «&nbsp;Export as JSON&nbsp;»
             (copie dans le presse-papiers), puis colle le résultat ci-dessous.
+          </p>
+          <p className="text-xs text-amber-400/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+            ⚠️ Ce texte donne un accès complet à ton compte Vinted, au même titre qu&apos;un mot de passe. Ne le partage jamais (support, capture d&apos;écran, autre site).
           </p>
           <textarea
             value={cookiesJson}
