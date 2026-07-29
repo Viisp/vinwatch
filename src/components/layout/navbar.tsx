@@ -7,6 +7,7 @@ import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AuthButton } from '@/components/auth/auth-button';
 import { ExpandingNav } from '@/components/layout/expanding-nav';
+import { ExportButton } from '@/components/export/export-button';
 
 const links = [
   { href: '/', label: 'Vue d’ensemble' },
@@ -39,6 +40,7 @@ export function Navbar() {
 
           {/* Desktop auth */}
           <div className="hidden sm:flex ml-auto items-center gap-1">
+            <ExportButton />
             <AuthButton />
           </div>
 
@@ -73,6 +75,7 @@ export function Navbar() {
               </Link>
             ))}
             <div className="pt-2 border-t border-[#243552] flex items-center justify-between">
+              <ExportButton />
               <AuthButton />
             </div>
           </nav>
