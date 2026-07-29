@@ -31,4 +31,22 @@ describe('parseVintedOrders', () => {
     const html = `<script>self.__next_f.push([1,"x:{\\"preloadedOrders\\":{\\"orders\\":[]}}"])</script>`;
     expect(parseVintedOrders(html)).toEqual([]);
   });
+
+  it('skips a malformed order (missing price) without dropping the others', () => {
+    const html = `<script>self.__next_f.push([1,"x:{\\"preloadedOrders\\":{\\"orders\\":[{\\"transactionId\\":1,\\"date\\":\\"2026-07-28T11:24:05+02:00\\",\\"status\\":\\"cancelled\\",\\"title\\":\\"Broken order\\"},{\\"transactionId\\":2,\\"conversationId\\":9,\\"date\\":\\"2026-07-28T08:29:26+02:00\\",\\"photo\\":{\\"url\\":\\"https://images1.vinted.net/photo2.jpg\\"},\\"price\\":{\\"amount\\":\\"10.0\\",\\"currencyCode\\":\\"EUR\\"},\\"status\\":\\"Bordereau envoy\\u00e9 au vendeur\\",\\"title\\":\\"Short jean\\"}],\\"pagination\\":{}}}"])</script>`;
+
+    const orders = parseVintedOrders(html);
+
+    expect(orders).toHaveLength(1);
+    expect(orders[0].transactionId).toBe(2);
+  });
+
+  it('treats a missing photo as photoUrl: null rather than skipping the order', () => {
+    const html = `<script>self.__next_f.push([1,"x:{\\"preloadedOrders\\":{\\"orders\\":[{\\"transactionId\\":3,\\"date\\":\\"2026-07-28T08:29:26+02:00\\",\\"price\\":{\\"amount\\":\\"5.0\\",\\"currencyCode\\":\\"EUR\\"},\\"status\\":\\"needs_action\\",\\"title\\":\\"No photo\\"}],\\"pagination\\":{}}}"])</script>`;
+
+    const orders = parseVintedOrders(html);
+
+    expect(orders).toHaveLength(1);
+    expect(orders[0].photoUrl).toBeNull();
+  });
 });

@@ -19,11 +19,10 @@ export function parseVintedOrders(html: string): VintedOrder[] {
 
   // The captured group is still escaped as it appeared inside the outer
   // JS string literal passed to self.__next_f.push(...): backslash-escaped
-  // quotes (\") and unicode escapes (\uXXXX). Unescape it back into plain
-  // JSON text before parsing.
-  const unescaped = match[1].replace(/\\"/g, '"').replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
-    String.fromCharCode(parseInt(hex, 16))
-  );
+  // quotes (\"). Unescape those back into plain JSON text before parsing;
+  // \uXXXX unicode escapes don't need separate handling since they're
+  // already valid JSON string escapes that JSON.parse decodes natively.
+  const unescaped = match[1].replace(/\\"/g, '"');
 
   let orders: unknown;
   try {
@@ -34,13 +33,42 @@ export function parseVintedOrders(html: string): VintedOrder[] {
 
   if (!Array.isArray(orders)) return [];
 
-  return (orders as Record<string, unknown>[]).map((o) => ({
-    transactionId: o.transactionId as number,
-    title: o.title as string,
-    priceAmount: (o.price as { amount: string }).amount,
-    priceCurrency: (o.price as { currencyCode: string }).currencyCode,
-    photoUrl: (o.photo as { url?: string } | undefined)?.url ?? null,
-    status: o.status as string,
-    date: o.date as string,
-  }));
+  // Real /my_orders pages contain order states this parser hasn't been
+  // exercised against (cancelled, disputed, deleted listings, etc.) where
+  // fields can be missing or null. Validate each record and skip malformed
+  // ones individually rather than letting one bad order throw inside
+  // .map() and silently drop every order on the page.
+  const result: VintedOrder[] = [];
+  for (const raw of orders as Record<string, unknown>[]) {
+    const order = toVintedOrder(raw);
+    if (order) result.push(order);
+  }
+  return result;
+}
+
+function toVintedOrder(o: Record<string, unknown>): VintedOrder | null {
+  const price = o.price as { amount?: unknown; currencyCode?: unknown } | undefined;
+
+  const transactionId = o.transactionId;
+  const title = o.title;
+  const priceAmount = price?.amount;
+  const priceCurrency = price?.currencyCode;
+  const status = o.status;
+  const date = o.date;
+
+  if (
+    typeof transactionId !== 'number' ||
+    typeof title !== 'string' ||
+    typeof priceAmount !== 'string' ||
+    typeof priceCurrency !== 'string' ||
+    typeof status !== 'string' ||
+    typeof date !== 'string'
+  ) {
+    return null;
+  }
+
+  const photo = o.photo as { url?: unknown } | undefined;
+  const photoUrl = typeof photo?.url === 'string' ? photo.url : null;
+
+  return { transactionId, title, priceAmount, priceCurrency, photoUrl, status, date };
 }
