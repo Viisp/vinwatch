@@ -52,7 +52,7 @@ export function SignInForm() {
 
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <Image src="/logo.jpg" alt="VinWatch" width={40} height={40} className="rounded-xl object-cover" />
+            <Image src="/logo.png" alt="VinWatch" width={40} height={40} className="rounded-xl object-cover" />
             <span className="text-2xl font-bold text-slate-100 tracking-tight">VinWatch</span>
           </div>
 
@@ -142,7 +142,7 @@ export function SignInForm() {
           <div className="absolute top-2/3 left-1/3 w-48 h-48 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
 
           <div className="relative z-10 text-center px-8">
-            <Image src="/logo.jpg" alt="VinWatch" width={64} height={64} className="rounded-2xl object-cover mx-auto mb-6" />
+            <Image src="/logo.png" alt="VinWatch" width={64} height={64} className="rounded-2xl object-cover mx-auto mb-6" />
             <h2 className="text-3xl font-bold text-slate-100 tracking-tight mb-3">Vos ventes Vinted, <br />enfin suivies.</h2>
             <p className="text-slate-400 text-sm max-w-xs mx-auto leading-relaxed">
               Suivez automatiquement vos ventes et achats Vinted, sans lever le petit doigt.

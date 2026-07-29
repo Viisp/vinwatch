@@ -29,7 +29,7 @@ export function Navbar() {
         <div className="flex h-16 items-center">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0" onClick={() => setMobileOpen(false)}>
-            <Image src="/logo.jpg" alt="VinWatch" width={32} height={32} className="rounded-lg object-cover" />
+            <Image src="/logo.png" alt="VinWatch" width={32} height={32} className="rounded-lg object-cover" />
             <span className="text-xl font-bold text-slate-100 tracking-tight">VinWatch</span>
           </Link>
 

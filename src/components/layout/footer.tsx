@@ -14,7 +14,7 @@ export function FooterSection() {
       <div className="mx-auto max-w-5xl px-6">
         {/* Logo */}
         <Link href="/" aria-label="Accueil VinWatch" className="mx-auto flex w-fit items-center gap-2">
-          <Image src="/logo.jpg" alt="VinWatch" width={28} height={28} className="rounded-md object-cover" />
+          <Image src="/logo.png" alt="VinWatch" width={28} height={28} className="rounded-md object-cover" />
           <span className="text-lg font-bold text-slate-100 tracking-tight">VinWatch</span>
         </Link>
 
