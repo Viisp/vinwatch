@@ -65,11 +65,15 @@ async function fetchOrdersHtml(
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
     });
     await context.addCookies(cookies);
+    console.log(
+      `[sync-vinted debug] ${orderType}: sending ${cookies.length} cookies: ${cookies.map((c) => c.name).join(', ')}`
+    );
     const page = await context.newPage();
     await page.goto(`https://www.vinted.fr/my_orders?order_type=${orderType}`, {
       waitUntil: 'domcontentloaded',
       timeout: 30000,
     });
+    console.log(`[sync-vinted debug] ${orderType}: landed on ${page.url()}`);
     return await page.content();
   } finally {
     await browser.close();
