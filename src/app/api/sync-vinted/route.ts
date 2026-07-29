@@ -53,7 +53,7 @@ function normalizeCookies(cookies: ExportedCookie[]): PlaywrightCookie[] {
 async function fetchOrdersHtml(
   cookies: PlaywrightCookie[],
   orderType: 'sold' | 'purchased'
-): Promise<string> {
+): Promise<{ html: string; url: string }> {
   const browser = await playwrightChromium.launch({
     args: chromium.args,
     executablePath: await chromium.executablePath(),
@@ -65,16 +65,12 @@ async function fetchOrdersHtml(
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
     });
     await context.addCookies(cookies);
-    console.log(
-      `[sync-vinted debug] ${orderType}: sending ${cookies.length} cookies: ${cookies.map((c) => c.name).join(', ')}`
-    );
     const page = await context.newPage();
     await page.goto(`https://www.vinted.fr/my_orders?order_type=${orderType}`, {
       waitUntil: 'domcontentloaded',
       timeout: 30000,
     });
-    console.log(`[sync-vinted debug] ${orderType}: landed on ${page.url()}`);
-    return await page.content();
+    return { html: await page.content(), url: page.url() };
   } finally {
     await browser.close();
   }
@@ -117,14 +113,13 @@ export async function GET(request: Request) {
 
       // Fetch sold and purchased independently: if one fails (network error,
       // timeout, etc.) we still want to upsert whatever the other one got.
-      const soldResult = await fetchOrdersHtml(cookies, 'sold')
-        .then((html) => ({ html }))
-        .catch((e) => ({ error: e as Error }));
-      const purchasedResult = await fetchOrdersHtml(cookies, 'purchased')
-        .then((html) => ({ html }))
-        .catch((e) => ({ error: e as Error }));
+      const soldResult = await fetchOrdersHtml(cookies, 'sold').catch((e) => ({ error: e as Error }));
+      const purchasedResult = await fetchOrdersHtml(cookies, 'purchased').catch((e) => ({ error: e as Error }));
 
-      const isLoginRedirect = !('error' in soldResult) && soldResult.html.includes('Se connecter');
+      // Judge login state from where the browser actually ended up, not from
+      // page text — "Se connecter" can legitimately appear in an authenticated
+      // page's markup (nav, hidden modal) and false-positive as "logged out".
+      const isLoginRedirect = !('error' in soldResult) && !soldResult.url.includes('/my_orders');
 
       if (isLoginRedirect) {
         await supabase
