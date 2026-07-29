@@ -53,7 +53,7 @@ input[type="number"] { -moz-appearance: textfield; }
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Depenzo dark navy theme — always dark */
+/* VinWatch dark navy theme — always dark */
 :root {
   --background: #0d1b2a;
   --foreground: #f1f5f9;

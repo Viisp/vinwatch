@@ -2,12 +2,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 const navLinks = [
-  { title: 'Tableau de bord', href: '/' },
-  { title: 'Dépenses', href: '/depenses' },
-  { title: 'Budget', href: '/budget' },
-  { title: 'Simulateur', href: '/pret' },
-  { title: 'Objectifs', href: '/objectifs' },
-  { title: 'Notes', href: '/notes' },
+  { title: 'Vue d’ensemble', href: '/' },
+  { title: 'Ventes', href: '/ventes' },
+  { title: 'Achats', href: '/achats' },
+  { title: 'Paramètres', href: '/parametres' },
 ];
 
 export function FooterSection() {
@@ -15,9 +13,9 @@ export function FooterSection() {
     <footer className="bg-[#0d1b2a] border-t border-[#243552] py-10">
       <div className="mx-auto max-w-5xl px-6">
         {/* Logo */}
-        <Link href="/" aria-label="Accueil Depenzo" className="mx-auto flex w-fit items-center gap-2">
-          <Image src="/logo.jpg" alt="Depenzo" width={28} height={28} className="rounded-md object-cover" />
-          <span className="text-lg font-bold text-slate-100 tracking-tight">Depenzo</span>
+        <Link href="/" aria-label="Accueil VinWatch" className="mx-auto flex w-fit items-center gap-2">
+          <Image src="/logo.jpg" alt="VinWatch" width={28} height={28} className="rounded-md object-cover" />
+          <span className="text-lg font-bold text-slate-100 tracking-tight">VinWatch</span>
         </Link>
 
         {/* Nav links */}
@@ -36,7 +34,7 @@ export function FooterSection() {
         {/* Divider */}
         <div className="border-t border-[#243552] pt-6">
           <p className="text-center text-sm text-slate-500">
-            © {new Date().getFullYear()} Depenzo — Gestion financière personnelle.
+            © {new Date().getFullYear()} VinWatch — Suivi des ventes et achats Vinted.
           </p>
         </div>
       </div>
