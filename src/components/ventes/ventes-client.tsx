@@ -37,7 +37,7 @@ export function VentesClient() {
           {orders.map((order) => (
             <Card key={order.id} className="bg-[#1a2d42]/80 border-[#243552]">
               <CardContent className="flex items-center gap-4 py-4">
-                {order.photoUrl && (
+                {order.photoUrl ? (
                   <Image
                     src={order.photoUrl}
                     alt={order.title}
@@ -45,6 +45,10 @@ export function VentesClient() {
                     height={56}
                     className="rounded-lg object-cover shrink-0"
                   />
+                ) : (
+                  <div className="w-[56px] h-[56px] rounded-lg bg-[#243552] flex items-center justify-center shrink-0">
+                    <PackageCheck className="w-5 h-5 text-slate-600" />
+                  </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-200 truncate">{order.title}</p>
