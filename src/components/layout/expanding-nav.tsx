@@ -1,15 +1,13 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CreditCard, Wallet, Calculator, Target, StickyNote } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, ShoppingBag, Settings } from 'lucide-react';
 
 const links = [
-  { href: '/',          label: 'Tableau de bord', icon: LayoutDashboard },
-  { href: '/depenses',  label: 'Dépenses',         icon: CreditCard },
-  { href: '/budget',    label: 'Budget',           icon: Wallet },
-  { href: '/pret',      label: 'Simulateur',       icon: Calculator },
-  { href: '/objectifs', label: 'Objectifs',        icon: Target },
-  { href: '/notes',     label: 'Notes',            icon: StickyNote },
+  { href: '/',           label: 'Vue d’ensemble', icon: LayoutDashboard },
+  { href: '/ventes',     label: 'Ventes',          icon: TrendingUp },
+  { href: '/achats',     label: 'Achats',          icon: ShoppingBag },
+  { href: '/parametres', label: 'Paramètres',      icon: Settings },
 ];
 
 export function ExpandingNav() {
