@@ -7,8 +7,51 @@ import { parseVintedOrders, type VintedOrder } from '@/lib/vinted-parser';
 
 export const maxDuration = 60; // seconds — Vercel Pro allows up to 300; adjust if this proves too short
 
+type ExportedCookie = {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  expirationDate?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: string;
+};
+
+type PlaywrightCookie = {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  expires?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: 'Strict' | 'Lax' | 'None';
+};
+
+// Cookie-Editor (and Chrome's cookie API generally) exports sameSite as
+// "no_restriction" | "lax" | "strict" | "unspecified", not the capitalized
+// "Strict" | "Lax" | "None" that Playwright's addCookies requires.
+function normalizeCookies(cookies: ExportedCookie[]): PlaywrightCookie[] {
+  const sameSiteMap: Record<string, 'Strict' | 'Lax' | 'None'> = {
+    strict: 'Strict',
+    lax: 'Lax',
+    no_restriction: 'None',
+  };
+  return cookies.map((c) => ({
+    name: c.name,
+    value: c.value,
+    domain: c.domain,
+    path: c.path,
+    ...(c.expirationDate ? { expires: c.expirationDate } : {}),
+    ...(c.httpOnly !== undefined ? { httpOnly: c.httpOnly } : {}),
+    ...(c.secure !== undefined ? { secure: c.secure } : {}),
+    ...(c.sameSite && sameSiteMap[c.sameSite] ? { sameSite: sameSiteMap[c.sameSite] } : {}),
+  }));
+}
+
 async function fetchOrdersHtml(
-  cookies: { name: string; value: string; domain: string; path: string }[],
+  cookies: PlaywrightCookie[],
   orderType: 'sold' | 'purchased'
 ): Promise<string> {
   const browser = await playwrightChromium.launch({
@@ -66,7 +109,7 @@ export async function GET(request: Request) {
 
   for (const session of sessions ?? []) {
     try {
-      const cookies = JSON.parse(decrypt(session.cookies_encrypted, session.user_id));
+      const cookies = normalizeCookies(JSON.parse(decrypt(session.cookies_encrypted, session.user_id)));
 
       // Fetch sold and purchased independently: if one fails (network error,
       // timeout, etc.) we still want to upsert whatever the other one got.
