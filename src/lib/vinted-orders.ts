@@ -7,7 +7,11 @@ export async function getOrders(orderType?: 'sold' | 'purchased'): Promise<Store
   if (orderType) query = query.eq('order_type', orderType);
 
   const { data, error } = await query;
-  if (error || !data) return [];
+  if (error) {
+    console.error('[getOrders] Supabase query failed:', error.message);
+    return [];
+  }
+  if (!data) return [];
 
   return data.map((row) => ({
     id: row.id,
@@ -27,12 +31,16 @@ export async function getSyncStatus(): Promise<{ status: string; lastSyncAt: str
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('vinted_session')
     .select('last_sync_status, last_sync_at')
     .eq('user_id', user.id)
     .maybeSingle();
 
+  if (error) {
+    console.error('[getSyncStatus] Supabase query failed:', error.message);
+    return null;
+  }
   if (!data) return null;
   return { status: data.last_sync_status, lastSyncAt: data.last_sync_at };
 }
