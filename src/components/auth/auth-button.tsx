@@ -2,39 +2,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { LogIn, User, UserCog, LogOut } from 'lucide-react';
+import { LogIn, User, LogOut } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
-import { getProfile } from '@/lib/storage';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export function AuthButton() {
   const router = useRouter();
   const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [pseudo, setPseudo] = useState('');
-  const [customAvatar, setCustomAvatar] = useState('');
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  const refreshProfile = () => {
-    const p = getProfile();
-    setPseudo(p.pseudo ?? '');
-    setCustomAvatar(p.customAvatar ?? '');
-  };
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
-      if (data.user) refreshProfile();
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) refreshProfile();
     });
-    window.addEventListener('depenzo:profile-updated', refreshProfile);
     return () => {
       subscription.unsubscribe();
-      window.removeEventListener('depenzo:profile-updated', refreshProfile);
     };
   }, []);
 
@@ -65,8 +52,8 @@ export function AuthButton() {
 
   const googleAvatar = user.user_metadata?.avatar_url as string | undefined;
   const googleName = user.user_metadata?.full_name as string | undefined;
-  const displayName = pseudo || googleName || user.email?.split('@')[0] || 'Profil';
-  const avatarSrc = customAvatar || googleAvatar;
+  const displayName = googleName || user.email?.split('@')[0] || 'Profil';
+  const avatarSrc = googleAvatar;
 
   return (
     <div ref={ref} className="relative">
@@ -75,7 +62,7 @@ export function AuthButton() {
         className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[#1a2d42]/60 transition-colors"
       >
         {avatarSrc ? (
-          <Image src={customAvatar || avatarSrc} alt="Avatar" width={26} height={26} className="rounded-full object-cover" unoptimized={!!customAvatar} />
+          <Image src={avatarSrc} alt="Avatar" width={26} height={26} className="rounded-full object-cover" />
         ) : (
           <div className="w-[26px] h-[26px] rounded-full bg-[#243552] flex items-center justify-center">
             <User className="w-3.5 h-3.5 text-[#00c896]" />
@@ -90,13 +77,6 @@ export function AuthButton() {
             <p className="text-xs font-semibold text-slate-100 truncate">{displayName}</p>
             <p className="text-xs text-slate-500 truncate">{user.email}</p>
           </div>
-          <button
-            onClick={() => { setOpen(false); router.push('/profil'); }}
-            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-300 hover:bg-[#243552]/60 hover:text-slate-100 transition-colors"
-          >
-            <UserCog className="w-4 h-4" />
-            Modifier le profil
-          </button>
           <button
             onClick={handleSignOut}
             className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"

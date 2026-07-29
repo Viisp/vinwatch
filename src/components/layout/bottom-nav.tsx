@@ -1,15 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CreditCard, PiggyBank, Target, UserCircle } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, ShoppingBag, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const tabs = [
-  { href: '/',          label: 'Accueil',   icon: LayoutDashboard },
-  { href: '/depenses',  label: 'Dépenses',  icon: CreditCard },
-  { href: '/budget',    label: 'Budget',    icon: PiggyBank },
-  { href: '/objectifs', label: 'Objectifs', icon: Target },
-  { href: '/profil',    label: 'Profil',    icon: UserCircle },
+  { href: '/',          label: 'Vue d’ensemble', icon: LayoutDashboard },
+  { href: '/ventes',    label: 'Ventes',     icon: TrendingUp },
+  { href: '/achats',    label: 'Achats',     icon: ShoppingBag },
+  { href: '/parametres', label: 'Paramètres', icon: Settings },
 ];
 
 export function BottomNav() {

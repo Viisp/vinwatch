@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/sync-vinted",
+      "schedule": "0 */4 * * *"
+    }
+  ]
+}

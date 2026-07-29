@@ -33,9 +33,9 @@ export function SignUpForm() {
     <div className="min-h-screen flex items-center justify-center bg-[#08111e] px-4">
       <div className="w-full max-w-sm rounded-2xl bg-[#1a2d42] border border-[#243552] shadow-2xl p-8 flex flex-col items-center gap-6">
         <div className="flex flex-col items-center gap-3">
-          <Image src="/logo.jpg" alt="Depenzo" width={48} height={48} className="rounded-xl object-cover" />
+          <Image src="/logo.jpg" alt="VinWatch" width={48} height={48} className="rounded-xl object-cover" />
           <h1 className="text-2xl font-bold text-slate-100">Créer un compte</h1>
-          <p className="text-slate-500 text-sm text-center">Rejoignez Depenzo gratuitement</p>
+          <p className="text-slate-500 text-sm text-center">Rejoignez VinWatch gratuitement</p>
         </div>
 
         <div className="flex flex-col w-full gap-3">

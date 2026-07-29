@@ -5,17 +5,15 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ExportModal } from '@/components/export/export-modal';
 import { AuthButton } from '@/components/auth/auth-button';
 import { ExpandingNav } from '@/components/layout/expanding-nav';
+import { ExportButton } from '@/components/export/export-button';
 
 const links = [
-  { href: '/', label: 'Tableau de bord' },
-  { href: '/depenses', label: 'Dépenses' },
-  { href: '/budget', label: 'Budget' },
-  { href: '/pret', label: 'Simulateur' },
-  { href: '/objectifs', label: 'Objectifs' },
-  { href: '/notes', label: 'Notes' },
+  { href: '/', label: 'Vue d’ensemble' },
+  { href: '/ventes', label: 'Ventes' },
+  { href: '/achats', label: 'Achats' },
+  { href: '/parametres', label: 'Paramètres' },
 ];
 
 export function Navbar() {
@@ -31,8 +29,8 @@ export function Navbar() {
         <div className="flex h-16 items-center">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0" onClick={() => setMobileOpen(false)}>
-            <Image src="/logo.jpg" alt="Depenzo" width={32} height={32} className="rounded-lg object-cover" />
-            <span className="text-xl font-bold text-slate-100 tracking-tight">Depenzo</span>
+            <Image src="/logo.jpg" alt="VinWatch" width={32} height={32} className="rounded-lg object-cover" />
+            <span className="text-xl font-bold text-slate-100 tracking-tight">VinWatch</span>
           </Link>
 
           {/* Desktop nav — centré avec expanding icons */}
@@ -40,9 +38,9 @@ export function Navbar() {
             <ExpandingNav />
           </div>
 
-          {/* Desktop export + auth */}
+          {/* Desktop auth */}
           <div className="hidden sm:flex ml-auto items-center gap-1">
-            <ExportModal />
+            <ExportButton />
             <AuthButton />
           </div>
 
@@ -77,7 +75,7 @@ export function Navbar() {
               </Link>
             ))}
             <div className="pt-2 border-t border-[#243552] flex items-center justify-between">
-              <ExportModal />
+              <ExportButton />
               <AuthButton />
             </div>
           </nav>
