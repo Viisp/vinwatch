@@ -24,11 +24,17 @@ function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
 }
 
+function toLocalDayKey(isoDate: string): string {
+  const date = new Date(isoDate);
+  // en-CA formats as YYYY-MM-DD, which is what we want for sortable day keys
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(date);
+}
+
 function buildDailySeries(orders: StoredOrder[], type: 'sold' | 'purchased'): { labels: string[]; data: number[] } {
   const byDay: Record<string, number> = {};
   for (const o of orders) {
     if (o.orderType !== type) continue;
-    const day = o.orderDate.slice(0, 10);
+    const day = toLocalDayKey(o.orderDate);
     byDay[day] = (byDay[day] || 0) + (parseFloat(o.priceAmount) || 0);
   }
   const days = Object.keys(byDay).sort();
@@ -41,55 +47,60 @@ export function DashboardClient() {
   const [summary, setSummary] = useState<OrdersSummary>({
     totalSold: 0, totalPurchased: 0, delta: 0, soldCount: 0, purchasedCount: 0,
   });
+  const [orders, setOrders] = useState<StoredOrder[]>([]);
   const [hasData, setHasData] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getOrders().then((orders) => {
-      setSummary(computeOrdersSummary(orders));
-      setHasData(orders.length > 0);
-
-      if (chartRef.current) {
-        if (chartInstanceRef.current) chartInstanceRef.current.destroy();
-
-        const sold = buildDailySeries(orders, 'sold');
-        const purchased = buildDailySeries(orders, 'purchased');
-        const allDays = Array.from(new Set([...sold.labels, ...purchased.labels])).sort();
-
-        if (allDays.length > 0) {
-          chartInstanceRef.current = new Chart(chartRef.current, {
-            type: 'line',
-            data: {
-              labels: allDays,
-              datasets: [
-                {
-                  label: 'Ventes',
-                  data: allDays.map((d) => sold.labels.includes(d) ? sold.data[sold.labels.indexOf(d)] : 0),
-                  borderColor: '#00c896',
-                  backgroundColor: '#00c89622',
-                  tension: 0.3,
-                },
-                {
-                  label: 'Achats',
-                  data: allDays.map((d) => purchased.labels.includes(d) ? purchased.data[purchased.labels.indexOf(d)] : 0),
-                  borderColor: '#ef4444',
-                  backgroundColor: '#ef444422',
-                  tension: 0.3,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              plugins: { legend: { labels: { color: '#94a3b8' } } },
-              scales: {
-                x: { ticks: { color: '#64748b' }, grid: { color: '#243552' } },
-                y: { ticks: { color: '#64748b' }, grid: { color: '#243552' } },
-              },
-            },
-          });
-        }
-      }
+    getOrders().then((data) => {
+      setOrders(data);
+      setSummary(computeOrdersSummary(data));
+      setHasData(data.length > 0);
+      setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    if (!hasData || !chartRef.current) return;
+    if (chartInstanceRef.current) chartInstanceRef.current.destroy();
+
+    const sold = buildDailySeries(orders, 'sold');
+    const purchased = buildDailySeries(orders, 'purchased');
+    const allDays = Array.from(new Set([...sold.labels, ...purchased.labels])).sort();
+
+    if (allDays.length === 0) return;
+
+    chartInstanceRef.current = new Chart(chartRef.current, {
+      type: 'line',
+      data: {
+        labels: allDays,
+        datasets: [
+          {
+            label: 'Ventes',
+            data: allDays.map((d) => sold.labels.includes(d) ? sold.data[sold.labels.indexOf(d)] : 0),
+            borderColor: '#00c896',
+            backgroundColor: '#00c89622',
+            tension: 0.3,
+          },
+          {
+            label: 'Achats',
+            data: allDays.map((d) => purchased.labels.includes(d) ? purchased.data[purchased.labels.indexOf(d)] : 0),
+            borderColor: '#ef4444',
+            backgroundColor: '#ef444422',
+            tension: 0.3,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: '#94a3b8' } } },
+        scales: {
+          x: { ticks: { color: '#64748b' }, grid: { color: '#243552' } },
+          y: { ticks: { color: '#64748b' }, grid: { color: '#243552' } },
+        },
+      },
+    });
+  }, [hasData, orders]);
 
   return (
     <div className="relative">
@@ -144,7 +155,9 @@ export function DashboardClient() {
             <CardTitle className="text-slate-100">Évolution</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-center min-h-[260px]">
-            {hasData ? (
+            {loading ? (
+              <p className="text-slate-500 text-sm">Chargement…</p>
+            ) : hasData ? (
               <canvas ref={chartRef} />
             ) : (
               <div className="flex flex-col items-center gap-2 text-center">
