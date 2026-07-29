@@ -39,7 +39,10 @@ create table public.vinted_session (
   cookies_encrypted text not null,
   last_sync_status text not null default 'never_synced',
   last_sync_at timestamptz,
-  updated_at timestamptz default now()
+  updated_at timestamptz default now(),
+  vinted_login text,
+  vinted_profile_url text,
+  vinted_photo_url text
 );
 
 alter table public.vinted_session enable row level security;
@@ -85,3 +88,12 @@ create policy "insert own vinted orders"
 create policy "update own vinted orders"
   on public.vinted_orders for update
   using (auth.uid() = user_id);
+
+-- Migration: vinted_session already existed live before these columns were
+-- added to the create table above. Run this against an existing database
+-- (safe to re-run: IF NOT EXISTS makes it a no-op on a fresh install where
+-- the create table above already includes these columns).
+alter table public.vinted_session
+  add column if not exists vinted_login text,
+  add column if not exists vinted_profile_url text,
+  add column if not exists vinted_photo_url text;

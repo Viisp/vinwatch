@@ -3,7 +3,7 @@ import chromium from '@sparticuz/chromium';
 import { chromium as playwrightChromium } from 'playwright-core';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { decrypt } from '@/lib/crypto';
-import { parseVintedOrders, type VintedOrder } from '@/lib/vinted-parser';
+import { parseVintedOrders, parseVintedProfile, type VintedOrder } from '@/lib/vinted-parser';
 
 export const maxDuration = 60; // seconds — Vercel Pro allows up to 300; adjust if this proves too short
 
@@ -48,26 +48,6 @@ function normalizeCookies(cookies: ExportedCookie[]): PlaywrightCookie[] {
     ...(c.secure !== undefined ? { secure: c.secure } : {}),
     ...(c.sameSite && sameSiteMap[c.sameSite] ? { sameSite: sameSiteMap[c.sameSite] } : {}),
   }));
-}
-
-function debugLogCurrentUserCandidates(html: string): void {
-  // Direct API calls to Vinted get blocked by their bot-protection (confirmed:
-  // 403 from context.request), but a fully-rendered authenticated page (like
-  // /my_orders, already fetched) passes that check. The header/account menu
-  // on such a page necessarily renders the logged-in user's pseudo/avatar
-  // somewhere in the flight-data JSON, the same way preloadedOrders does.
-  // Log a window around each candidate key so we can see the real shape
-  // without guessing field names blind.
-  const candidates = ['\\"login\\"', '\\"photo\\"', '\\"currentUser\\"', '\\"business\\"'];
-  for (const marker of candidates) {
-    const idx = html.indexOf(marker);
-    if (idx === -1) {
-      console.log(`[debug currentUser] marker ${marker} not found`);
-      continue;
-    }
-    const start = Math.max(0, idx - 100);
-    console.log(`[debug currentUser] marker ${marker} @${idx}: ${html.slice(start, idx + 400)}`);
-  }
 }
 
 async function fetchOrdersHtml(
@@ -136,8 +116,6 @@ export async function GET(request: Request) {
       const soldResult = await fetchOrdersHtml(cookies, 'sold').catch((e) => ({ error: e as Error }));
       const purchasedResult = await fetchOrdersHtml(cookies, 'purchased').catch((e) => ({ error: e as Error }));
 
-      if (!('error' in soldResult)) debugLogCurrentUserCandidates(soldResult.html);
-
       // Judge login state from where the browser actually ended up, not from
       // page text — "Se connecter" can legitimately appear in an authenticated
       // page's markup (nav, hidden modal) and false-positive as "logged out".
@@ -183,9 +161,29 @@ export async function GET(request: Request) {
         if (upsertError) throw upsertError;
       }
 
+      // Every authenticated page (not just /my_orders) embeds the logged-in
+      // user's own pseudo/avatar, so no extra request is needed to keep the
+      // account menu's Vinted identity in sync.
+      const profileHtml = !('error' in soldResult)
+        ? soldResult.html
+        : !('error' in purchasedResult)
+          ? purchasedResult.html
+          : null;
+      const profile = profileHtml ? parseVintedProfile(profileHtml) : null;
+
       await supabase
         .from('vinted_session')
-        .update({ last_sync_status: 'ok', last_sync_at: new Date().toISOString() })
+        .update({
+          last_sync_status: 'ok',
+          last_sync_at: new Date().toISOString(),
+          ...(profile
+            ? {
+                vinted_login: profile.login,
+                vinted_profile_url: profile.profileUrl,
+                vinted_photo_url: profile.photoUrl,
+              }
+            : {}),
+        })
         .eq('user_id', session.user_id);
       const partialNote = soldLooksValid && purchasedLooksValid ? '' : ' (partial: only one side succeeded)';
       results[session.user_id] = `ok (${rows.length} orders)${partialNote}`;

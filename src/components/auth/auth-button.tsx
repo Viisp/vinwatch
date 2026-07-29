@@ -3,13 +3,15 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { LogIn, User, LogOut, Settings } from 'lucide-react';
+import { LogIn, User, LogOut, Settings, ExternalLink } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
+import { getVintedProfile, type VintedProfileInfo } from '@/lib/vinted-orders';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export function AuthButton() {
   const router = useRouter();
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [vintedProfile, setVintedProfile] = useState<VintedProfileInfo | null>(null);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -25,6 +27,14 @@ export function AuthButton() {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setVintedProfile(null);
+      return;
+    }
+    getVintedProfile().then(setVintedProfile);
+  }, [user]);
 
   // Close on outside click
   useEffect(() => {
@@ -53,8 +63,8 @@ export function AuthButton() {
 
   const googleAvatar = user.user_metadata?.avatar_url as string | undefined;
   const googleName = user.user_metadata?.full_name as string | undefined;
-  const displayName = googleName || user.email?.split('@')[0] || 'Profil';
-  const avatarSrc = googleAvatar;
+  const displayName = vintedProfile?.login || googleName || user.email?.split('@')[0] || 'Profil';
+  const avatarSrc = vintedProfile?.photoUrl || googleAvatar;
 
   return (
     <div ref={ref} className="relative">
@@ -78,6 +88,17 @@ export function AuthButton() {
             <p className="text-xs font-semibold text-slate-100 truncate">{displayName}</p>
             <p className="text-xs text-slate-500 truncate">{user.email}</p>
           </div>
+          {vintedProfile?.profileUrl && (
+            <a
+              href={vintedProfile.profileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-300 hover:bg-[#243552] transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Voir mon profil Vinted
+            </a>
+          )}
           <Link
             href="/parametres"
             onClick={() => setOpen(false)}

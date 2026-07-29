@@ -26,6 +26,33 @@ export async function getOrders(orderType?: 'sold' | 'purchased'): Promise<Store
   }));
 }
 
+export interface VintedProfileInfo {
+  login: string | null;
+  profileUrl: string | null;
+  photoUrl: string | null;
+}
+
+export async function getVintedProfile(): Promise<VintedProfileInfo | null> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from('vinted_session')
+    .select('vinted_login, vinted_profile_url, vinted_photo_url')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[getVintedProfile] Supabase query failed:', error.message);
+    return null;
+  }
+  if (!data || !data.vinted_login) return null;
+  return { login: data.vinted_login, profileUrl: data.vinted_profile_url, photoUrl: data.vinted_photo_url };
+}
+
 export async function getSyncStatus(): Promise<{ status: string; lastSyncAt: string | null } | null> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();

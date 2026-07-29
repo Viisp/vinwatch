@@ -46,6 +46,39 @@ export function parseVintedOrders(html: string): VintedOrder[] {
   return result;
 }
 
+export interface VintedProfile {
+  login: string;
+  profileUrl: string | null;
+  photoUrl: string | null;
+}
+
+/**
+ * Every authenticated Vinted page (not just /my_orders) embeds the logged-in
+ * user's own profile under an "initialUserState":{"user":{...}} key in the
+ * same escaped flight-data format as preloadedOrders. Direct calls to
+ * Vinted's own current-user API get blocked by their bot protection (403),
+ * but this is already present on a page we fetch anyway, so no extra
+ * request is needed to get the pseudo/avatar.
+ */
+export function parseVintedProfile(html: string): VintedProfile | null {
+  const markerIdx = html.indexOf('\\"initialUserState\\"');
+  if (markerIdx === -1) return null;
+
+  const slice = html.slice(markerIdx, markerIdx + 5000);
+
+  const loginMatch = slice.match(/\\"login\\":\\"([^"\\]+)\\"/);
+  if (!loginMatch) return null;
+
+  const profileUrlMatch = slice.match(/\\"profile_url\\":\\"([^"\\]+)\\"/);
+  const photoUrlMatch = slice.match(/\\"photo\\":\{\\"id\\":\d+,[\s\S]*?\\"url\\":\\"([^"\\]+)\\"/);
+
+  return {
+    login: loginMatch[1],
+    profileUrl: profileUrlMatch ? profileUrlMatch[1] : null,
+    photoUrl: photoUrlMatch ? photoUrlMatch[1] : null,
+  };
+}
+
 function toVintedOrder(o: Record<string, unknown>): VintedOrder | null {
   const price = o.price as { amount?: unknown; currencyCode?: unknown } | undefined;
 
