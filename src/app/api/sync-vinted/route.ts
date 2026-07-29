@@ -17,7 +17,10 @@ async function fetchOrdersHtml(
     headless: true,
   });
   try {
-    const context = await browser.newContext();
+    const context = await browser.newContext({
+      userAgent:
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+    });
     await context.addCookies(cookies);
     const page = await context.newPage();
     await page.goto(`https://www.vinted.fr/my_orders?order_type=${orderType}`, {
@@ -65,15 +68,18 @@ export async function GET(request: Request) {
     try {
       const cookies = JSON.parse(decrypt(session.cookies_encrypted, session.user_id));
 
-      const [soldHtml, purchasedHtml] = await Promise.all([
-        fetchOrdersHtml(cookies, 'sold'),
-        fetchOrdersHtml(cookies, 'purchased'),
-      ]);
+      // Fetch sold and purchased independently: if one fails (network error,
+      // timeout, etc.) we still want to upsert whatever the other one got.
+      const soldResult = await fetchOrdersHtml(cookies, 'sold')
+        .then((html) => ({ html }))
+        .catch((e) => ({ error: e as Error }));
+      const purchasedResult = await fetchOrdersHtml(cookies, 'purchased')
+        .then((html) => ({ html }))
+        .catch((e) => ({ error: e as Error }));
 
-      const soldOrders = parseVintedOrders(soldHtml);
-      const purchasedOrders = parseVintedOrders(purchasedHtml);
+      const isLoginRedirect = !('error' in soldResult) && soldResult.html.includes('Se connecter');
 
-      if (soldOrders.length === 0 && purchasedOrders.length === 0 && soldHtml.includes('Se connecter')) {
+      if (isLoginRedirect) {
         await supabase
           .from('vinted_session')
           .update({ last_sync_status: 'expired', last_sync_at: new Date().toISOString() })
@@ -81,6 +87,25 @@ export async function GET(request: Request) {
         results[session.user_id] = 'expired';
         continue;
       }
+
+      // A page only "counts" if it actually rendered as an orders page —
+      // the preloadedOrders marker is the same one parseVintedOrders itself
+      // looks for. Without it, an empty parse result could mean a rate-limit
+      // page, a bot-detection challenge, or a layout change, not "genuinely
+      // zero orders", so it can't be trusted.
+      const soldLooksValid = !('error' in soldResult) && soldResult.html.includes('preloadedOrders');
+      const purchasedLooksValid = !('error' in purchasedResult) && purchasedResult.html.includes('preloadedOrders');
+
+      if (!soldLooksValid && !purchasedLooksValid) {
+        const soldMsg = 'error' in soldResult ? soldResult.error.message : 'page did not render as expected';
+        const purchasedMsg =
+          'error' in purchasedResult ? purchasedResult.error.message : 'page did not render as expected';
+        throw new Error(`both sold and purchased fetches failed: sold=${soldMsg}; purchased=${purchasedMsg}`);
+      }
+
+      const soldOrders = soldLooksValid && !('error' in soldResult) ? parseVintedOrders(soldResult.html) : [];
+      const purchasedOrders =
+        purchasedLooksValid && !('error' in purchasedResult) ? parseVintedOrders(purchasedResult.html) : [];
 
       const rows = [
         ...soldOrders.map((o) => toOrderRow(o, session.user_id, 'sold')),
@@ -98,7 +123,8 @@ export async function GET(request: Request) {
         .from('vinted_session')
         .update({ last_sync_status: 'ok', last_sync_at: new Date().toISOString() })
         .eq('user_id', session.user_id);
-      results[session.user_id] = `ok (${rows.length} orders)`;
+      const partialNote = soldLooksValid && purchasedLooksValid ? '' : ' (partial: only one side succeeded)';
+      results[session.user_id] = `ok (${rows.length} orders)${partialNote}`;
     } catch (err) {
       await supabase
         .from('vinted_session')
