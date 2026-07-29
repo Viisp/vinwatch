@@ -104,7 +104,12 @@ export function DashboardClient() {
 
   return (
     <div className="relative">
-      <HeroGeometric />
+      <HeroGeometric
+        badge="Suivi Vinted automatique"
+        title1="Vos ventes et achats"
+        title2="Vinted, en un coup d'œil."
+        description="Synchronisation automatique de tes commandes Vinted, sans jamais toucher à ton compte."
+      />
 
       <div className="mx-auto max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">

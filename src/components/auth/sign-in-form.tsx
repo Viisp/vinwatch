@@ -143,16 +143,16 @@ export function SignInForm() {
 
           <div className="relative z-10 text-center px-8">
             <Image src="/logo.jpg" alt="VinWatch" width={64} height={64} className="rounded-2xl object-cover mx-auto mb-6" />
-            <h2 className="text-3xl font-bold text-slate-100 tracking-tight mb-3">Vos finances, <br />enfin maîtrisées.</h2>
+            <h2 className="text-3xl font-bold text-slate-100 tracking-tight mb-3">Vos ventes Vinted, <br />enfin suivies.</h2>
             <p className="text-slate-400 text-sm max-w-xs mx-auto leading-relaxed">
-              Suivez vos dépenses, gérez votre budget et atteignez vos objectifs d'épargne depuis n'importe quel appareil.
+              Suivez automatiquement vos ventes et achats Vinted, sans lever le petit doigt.
             </p>
           </div>
 
           {/* Stats déco */}
           <div className="relative z-10 flex gap-4 px-8">
             {[
-              { label: 'Dépenses suivies', value: '100%' },
+              { label: 'Sync automatique', value: '100%' },
               { label: 'Sync multi-appareils', value: '✓' },
               { label: 'Données sécurisées', value: '🔒' },
             ].map((s) => (
