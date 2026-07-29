@@ -2,17 +2,23 @@ import { NextResponse } from 'next/server';
 import chromium from '@sparticuz/chromium';
 import { chromium as playwrightChromium } from 'playwright-core';
 import { createAdminClient } from '@/lib/supabase-admin';
-import { decrypt } from '@/lib/crypto';
+import { decrypt, encrypt } from '@/lib/crypto';
 import { parseVintedOrders, parseVintedProfile, type VintedOrder } from '@/lib/vinted-parser';
 
 export const maxDuration = 60; // seconds — Vercel Pro allows up to 300; adjust if this proves too short
 
-type ExportedCookie = {
+// Two shapes flow through this file: the raw Cookie-Editor export (from the
+// user's paste, or round-tripped from a previous sync's storage) and
+// Playwright's own cookie shape. normalizeCookies accepts either — after the
+// first auto-refresh (see saveRefreshedCookies below), what's stored is
+// already Playwright-shaped, so this has to tolerate both without erroring.
+type StoredCookie = {
   name: string;
   value: string;
   domain: string;
   path: string;
   expirationDate?: number;
+  expires?: number;
   httpOnly?: boolean;
   secure?: boolean;
   sameSite?: string;
@@ -32,28 +38,33 @@ type PlaywrightCookie = {
 // Cookie-Editor (and Chrome's cookie API generally) exports sameSite as
 // "no_restriction" | "lax" | "strict" | "unspecified", not the capitalized
 // "Strict" | "Lax" | "None" that Playwright's addCookies requires.
-function normalizeCookies(cookies: ExportedCookie[]): PlaywrightCookie[] {
+function normalizeCookies(cookies: StoredCookie[]): PlaywrightCookie[] {
   const sameSiteMap: Record<string, 'Strict' | 'Lax' | 'None'> = {
     strict: 'Strict',
     lax: 'Lax',
     no_restriction: 'None',
   };
+  const validSameSite = new Set(['Strict', 'Lax', 'None']);
   return cookies.map((c) => ({
     name: c.name,
     value: c.value,
     domain: c.domain,
     path: c.path,
-    ...(c.expirationDate ? { expires: c.expirationDate } : {}),
+    ...(c.expires || c.expirationDate ? { expires: c.expires ?? c.expirationDate } : {}),
     ...(c.httpOnly !== undefined ? { httpOnly: c.httpOnly } : {}),
     ...(c.secure !== undefined ? { secure: c.secure } : {}),
-    ...(c.sameSite && sameSiteMap[c.sameSite] ? { sameSite: sameSiteMap[c.sameSite] } : {}),
+    ...(c.sameSite && validSameSite.has(c.sameSite)
+      ? { sameSite: c.sameSite as 'Strict' | 'Lax' | 'None' }
+      : c.sameSite && sameSiteMap[c.sameSite]
+        ? { sameSite: sameSiteMap[c.sameSite] }
+        : {}),
   }));
 }
 
 async function fetchOrdersHtml(
   cookies: PlaywrightCookie[],
   orderType: 'sold' | 'purchased'
-): Promise<{ html: string; url: string }> {
+): Promise<{ html: string; url: string; refreshedCookies: PlaywrightCookie[] }> {
   const browser = await playwrightChromium.launch({
     args: chromium.args,
     executablePath: await chromium.executablePath(),
@@ -70,7 +81,15 @@ async function fetchOrdersHtml(
       waitUntil: 'domcontentloaded',
       timeout: 30000,
     });
-    return { html: await page.content(), url: page.url() };
+    const html = await page.content();
+    const url = page.url();
+    // Vinted's own SPA silently rotates access_token_web using
+    // refresh_token_web while the page runs. Capture whatever the browser
+    // ended up with so the caller can persist it — otherwise every sync
+    // keeps using the same slowly-expiring snapshot from the user's last
+    // manual paste, and they'd have to repaste far more often than needed.
+    const refreshedCookies = (await context.cookies()) as PlaywrightCookie[];
+    return { html, url, refreshedCookies };
   } finally {
     await browser.close();
   }
@@ -164,18 +183,23 @@ export async function GET(request: Request) {
       // Every authenticated page (not just /my_orders) embeds the logged-in
       // user's own pseudo/avatar, so no extra request is needed to keep the
       // account menu's Vinted identity in sync.
-      const profileHtml = !('error' in soldResult)
-        ? soldResult.html
-        : !('error' in purchasedResult)
-          ? purchasedResult.html
-          : null;
-      const profile = profileHtml ? parseVintedProfile(profileHtml) : null;
+      const succeededResult = !('error' in soldResult) ? soldResult : !('error' in purchasedResult) ? purchasedResult : null;
+      const profile = succeededResult ? parseVintedProfile(succeededResult.html) : null;
+
+      // Persist whatever cookies the browser ended up with (Vinted's SPA
+      // rotates access_token_web via refresh_token_web while the page runs)
+      // so the next sync starts from a live session instead of the same
+      // slowly-expiring snapshot from the user's last manual paste.
+      const cookiesEncrypted = succeededResult
+        ? encrypt(JSON.stringify(succeededResult.refreshedCookies), session.user_id)
+        : null;
 
       await supabase
         .from('vinted_session')
         .update({
           last_sync_status: 'ok',
           last_sync_at: new Date().toISOString(),
+          ...(cookiesEncrypted ? { cookies_encrypted: cookiesEncrypted } : {}),
           ...(profile
             ? {
                 vinted_login: profile.login,

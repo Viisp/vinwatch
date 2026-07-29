@@ -62,6 +62,12 @@ describe('parseVintedProfile', () => {
     });
   });
 
+  it('prefers a thumbnail URL over the full-size photo when present', () => {
+    const html = `<script>self.__next_f.push([1,"2a:{\\"initialUserState\\":{\\"user\\":{\\"id\\":1,\\"login\\":\\"viiisp\\",\\"photo\\":{\\"id\\":9,\\"width\\":420,\\"url\\":\\"https://images1.vinted.net/t/full.webp\\",\\"thumbnails\\":[{\\"type\\":\\"thumb70\\",\\"url\\":\\"https://images1.vinted.net/t/thumb70.webp\\"}]}}}}"])</script>`;
+
+    expect(parseVintedProfile(html)?.photoUrl).toBe('https://images1.vinted.net/t/thumb70.webp');
+  });
+
   it('returns null when initialUserState is not present', () => {
     expect(parseVintedProfile('<html><body>Rien ici</body></html>')).toBeNull();
   });
