@@ -50,26 +50,23 @@ function normalizeCookies(cookies: ExportedCookie[]): PlaywrightCookie[] {
   }));
 }
 
-async function debugFetchCurrentUser(cookies: PlaywrightCookie[]): Promise<void> {
-  const browser = await playwrightChromium.launch({
-    args: chromium.args,
-    executablePath: await chromium.executablePath(),
-    headless: true,
-  });
-  try {
-    const context = await browser.newContext({
-      userAgent:
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-    });
-    await context.addCookies(cookies);
-    const res = await context.request.get('https://www.vinted.fr/api/v2/users/current');
-    const status = res.status();
-    const body = await res.text();
-    console.log(`[debug currentUser] status=${status} body=${body.slice(0, 1000)}`);
-  } catch (e) {
-    console.log(`[debug currentUser] request failed: ${e instanceof Error ? e.message : String(e)}`);
-  } finally {
-    await browser.close();
+function debugLogCurrentUserCandidates(html: string): void {
+  // Direct API calls to Vinted get blocked by their bot-protection (confirmed:
+  // 403 from context.request), but a fully-rendered authenticated page (like
+  // /my_orders, already fetched) passes that check. The header/account menu
+  // on such a page necessarily renders the logged-in user's pseudo/avatar
+  // somewhere in the flight-data JSON, the same way preloadedOrders does.
+  // Log a window around each candidate key so we can see the real shape
+  // without guessing field names blind.
+  const candidates = ['\\"login\\"', '\\"photo\\"', '\\"currentUser\\"', '\\"business\\"'];
+  for (const marker of candidates) {
+    const idx = html.indexOf(marker);
+    if (idx === -1) {
+      console.log(`[debug currentUser] marker ${marker} not found`);
+      continue;
+    }
+    const start = Math.max(0, idx - 100);
+    console.log(`[debug currentUser] marker ${marker} @${idx}: ${html.slice(start, idx + 400)}`);
   }
 }
 
@@ -134,12 +131,12 @@ export async function GET(request: Request) {
     try {
       const cookies = normalizeCookies(JSON.parse(decrypt(session.cookies_encrypted, session.user_id)));
 
-      await debugFetchCurrentUser(cookies);
-
       // Fetch sold and purchased independently: if one fails (network error,
       // timeout, etc.) we still want to upsert whatever the other one got.
       const soldResult = await fetchOrdersHtml(cookies, 'sold').catch((e) => ({ error: e as Error }));
       const purchasedResult = await fetchOrdersHtml(cookies, 'purchased').catch((e) => ({ error: e as Error }));
+
+      if (!('error' in soldResult)) debugLogCurrentUserCandidates(soldResult.html);
 
       // Judge login state from where the browser actually ended up, not from
       // page text — "Se connecter" can legitimately appear in an authenticated
