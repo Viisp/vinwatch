@@ -50,6 +50,29 @@ function normalizeCookies(cookies: ExportedCookie[]): PlaywrightCookie[] {
   }));
 }
 
+async function debugFetchCurrentUser(cookies: PlaywrightCookie[]): Promise<void> {
+  const browser = await playwrightChromium.launch({
+    args: chromium.args,
+    executablePath: await chromium.executablePath(),
+    headless: true,
+  });
+  try {
+    const context = await browser.newContext({
+      userAgent:
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+    });
+    await context.addCookies(cookies);
+    const res = await context.request.get('https://www.vinted.fr/api/v2/users/current');
+    const status = res.status();
+    const body = await res.text();
+    console.log(`[debug currentUser] status=${status} body=${body.slice(0, 1000)}`);
+  } catch (e) {
+    console.log(`[debug currentUser] request failed: ${e instanceof Error ? e.message : String(e)}`);
+  } finally {
+    await browser.close();
+  }
+}
+
 async function fetchOrdersHtml(
   cookies: PlaywrightCookie[],
   orderType: 'sold' | 'purchased'
@@ -110,6 +133,8 @@ export async function GET(request: Request) {
   for (const session of sessions ?? []) {
     try {
       const cookies = normalizeCookies(JSON.parse(decrypt(session.cookies_encrypted, session.user_id)));
+
+      await debugFetchCurrentUser(cookies);
 
       // Fetch sold and purchased independently: if one fails (network error,
       // timeout, etc.) we still want to upsert whatever the other one got.
