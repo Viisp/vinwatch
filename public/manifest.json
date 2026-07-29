@@ -1,7 +1,7 @@
 {
-  "name": "Depenzo",
-  "short_name": "Depenzo",
-  "description": "Gestion financière personnelle",
+  "name": "VinWatch",
+  "short_name": "VinWatch",
+  "description": "Suivi des ventes et achats Vinted",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#08111e",
@@ -9,17 +9,17 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/logo.jpg",
+      "src": "/android-chrome-192x192.png",
       "sizes": "192x192",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/logo.jpg",
+      "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["finance", "productivity"]
+  "categories": ["shopping", "productivity"]
 }
