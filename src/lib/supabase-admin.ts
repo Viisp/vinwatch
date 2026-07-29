@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { createClient } from '@supabase/supabase-js';
 
 /** Server-only client that bypasses Row Level Security. Never import this from a Client Component. */
