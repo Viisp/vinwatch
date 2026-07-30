@@ -165,11 +165,6 @@ export async function GET(request: Request) {
         throw new Error(`both sold and purchased fetches failed: sold=${soldMsg}; purchased=${purchasedMsg}`);
       }
 
-      if (!('error' in soldResult)) {
-        const m = soldResult.html.match(/\\"preloadedOrders\\":\{\\"orders\\":(\[[\s\S]*?\])(?:,\\"pagination\\"|\})/);
-        console.log(`[debug order fields v2] ${m ? m[1].slice(0, 2500) : 'no match'}`);
-      }
-
       const soldOrders = soldLooksValid && !('error' in soldResult) ? parseVintedOrders(soldResult.html) : [];
       const purchasedOrders =
         purchasedLooksValid && !('error' in purchasedResult) ? parseVintedOrders(purchasedResult.html) : [];
@@ -191,6 +186,33 @@ export async function GET(request: Request) {
       // account menu's Vinted identity in sync.
       const succeededResult = !('error' in soldResult) ? soldResult : !('error' in purchasedResult) ? purchasedResult : null;
       const profile = succeededResult ? parseVintedProfile(succeededResult.html) : null;
+
+      if (profile?.profileUrl) {
+        const browser = await playwrightChromium.launch({
+          args: chromium.args,
+          executablePath: await chromium.executablePath(),
+          headless: true,
+        });
+        try {
+          const context = await browser.newContext({
+            userAgent:
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+          });
+          await context.addCookies(cookies);
+          const page = await context.newPage();
+          await page.goto(profile.profileUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+          const html = await page.content();
+          const candidates = ['\\"items\\"', '\\"closet', '\\"itemBox', '\\"catalogItems\\"', '\\"wardrobe'];
+          for (const marker of candidates) {
+            const idx = html.indexOf(marker);
+            console.log(
+              `[debug profile page] marker ${marker}: ${idx === -1 ? 'not found' : html.slice(Math.max(0, idx - 50), idx + 500)}`
+            );
+          }
+        } finally {
+          await browser.close();
+        }
+      }
 
       // Persist whatever cookies the browser ended up with (Vinted's SPA
       // rotates access_token_web via refresh_token_web while the page runs)
@@ -222,7 +244,16 @@ export async function GET(request: Request) {
         .from('vinted_session')
         .update({ last_sync_status: 'error', last_sync_at: new Date().toISOString() })
         .eq('user_id', session.user_id);
-      results[session.user_id] = `error: ${err instanceof Error ? err.message : String(err)}`;
+      // Supabase/PostgREST errors are plain objects with a `.message`, not
+      // native Error instances — String(err) on those just gives
+      // "[object Object]", which is useless for diagnosing what broke.
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'object' && err !== null && 'message' in err
+            ? String((err as { message: unknown }).message)
+            : String(err);
+      results[session.user_id] = `error: ${message}`;
     }
   }
 
