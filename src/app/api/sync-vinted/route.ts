@@ -164,6 +164,11 @@ export async function GET(request: Request) {
         throw new Error(`both sold and purchased fetches failed: sold=${soldMsg}; purchased=${purchasedMsg}`);
       }
 
+      if (!('error' in soldResult)) {
+        const m = soldResult.html.match(/\\"preloadedOrders\\":\{\\"orders\\":(\[[\s\S]*?\])(?:,\\"pagination\\"|\})/);
+        console.log(`[debug order fields] ${m ? m[1].slice(0, 1500) : 'no match'}`);
+      }
+
       const soldOrders = soldLooksValid && !('error' in soldResult) ? parseVintedOrders(soldResult.html) : [];
       const purchasedOrders =
         purchasedLooksValid && !('error' in purchasedResult) ? parseVintedOrders(purchasedResult.html) : [];
