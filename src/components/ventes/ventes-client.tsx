@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { getOrders } from '@/lib/vinted-orders';
-import type { StoredOrder } from '@/lib/vinted-calculations';
+import { vintedOrderUrl, type StoredOrder } from '@/lib/vinted-calculations';
 import { PackageCheck } from 'lucide-react';
 
 function formatPrice(order: StoredOrder): string {
@@ -34,32 +34,44 @@ export function VentesClient() {
         <p className="text-slate-500 text-sm">Aucune vente synchronisée pour l&apos;instant.</p>
       ) : (
         <div className="space-y-3">
-          {orders.map((order) => (
-            <Card key={order.id} className="bg-[#1a2d42]/80 border-[#243552]">
-              <CardContent className="flex items-center gap-4 py-4">
-                {order.photoUrl ? (
-                  <Image
-                    src={order.photoUrl}
-                    alt={order.title}
-                    width={56}
-                    height={56}
-                    className="rounded-lg object-cover shrink-0"
-                  />
-                ) : (
-                  <div className="w-[56px] h-[56px] rounded-lg bg-[#243552] flex items-center justify-center shrink-0">
-                    <PackageCheck className="w-5 h-5 text-slate-600" />
+          {orders.map((order) => {
+            const url = vintedOrderUrl(order);
+            const card = (
+              <Card
+                className={`bg-[#1a2d42]/80 border-[#243552]${url ? ' hover:bg-[#1a2d42] transition-colors' : ''}`}
+              >
+                <CardContent className="flex items-center gap-4 py-4">
+                  {order.photoUrl ? (
+                    <Image
+                      src={order.photoUrl}
+                      alt={order.title}
+                      width={56}
+                      height={56}
+                      className="rounded-lg object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="w-[56px] h-[56px] rounded-lg bg-[#243552] flex items-center justify-center shrink-0">
+                      <PackageCheck className="w-5 h-5 text-slate-600" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-200 truncate">{order.title}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {new Date(order.orderDate).toLocaleDateString('fr-FR')} · {order.status}
+                    </p>
                   </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-200 truncate">{order.title}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {new Date(order.orderDate).toLocaleDateString('fr-FR')} · {order.status}
-                  </p>
-                </div>
-                <span className="text-sm font-semibold text-[#00c896] shrink-0">{formatPrice(order)}</span>
-              </CardContent>
-            </Card>
-          ))}
+                  <span className="text-sm font-semibold text-[#00c896] shrink-0">{formatPrice(order)}</span>
+                </CardContent>
+              </Card>
+            );
+            return url ? (
+              <a key={order.id} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                {card}
+              </a>
+            ) : (
+              <div key={order.id}>{card}</div>
+            );
+          })}
         </div>
       )}
     </div>

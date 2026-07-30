@@ -1,5 +1,6 @@
 export interface VintedOrder {
   transactionId: number;
+  conversationId: number | null;
   title: string;
   priceAmount: string;
   priceCurrency: string;
@@ -106,6 +107,7 @@ function toVintedOrder(o: Record<string, unknown>): VintedOrder | null {
 
   const photo = o.photo as { url?: unknown } | undefined;
   const photoUrl = typeof photo?.url === 'string' ? photo.url : null;
+  const conversationId = typeof o.conversationId === 'number' ? o.conversationId : null;
 
-  return { transactionId, title, priceAmount, priceCurrency, photoUrl, status, date };
+  return { transactionId, conversationId, title, priceAmount, priceCurrency, photoUrl, status, date };
 }

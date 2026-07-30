@@ -1,6 +1,7 @@
 export interface StoredOrder {
   id: string;
   transactionId: number;
+  conversationId: number | null;
   orderType: 'sold' | 'purchased';
   title: string;
   priceAmount: string;
@@ -16,6 +17,11 @@ export interface OrdersSummary {
   delta: number;
   soldCount: number;
   purchasedCount: number;
+}
+
+/** Link to the Vinted conversation thread for this order, or null if we never captured one. */
+export function vintedOrderUrl(order: Pick<StoredOrder, 'conversationId'>): string | null {
+  return order.conversationId ? `https://www.vinted.fr/inbox/${order.conversationId}` : null;
 }
 
 export function computeOrdersSummary(orders: StoredOrder[]): OrdersSummary {

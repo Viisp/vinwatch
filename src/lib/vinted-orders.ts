@@ -16,6 +16,7 @@ export async function getOrders(orderType?: 'sold' | 'purchased'): Promise<Store
   return data.map((row) => ({
     id: row.id,
     transactionId: row.transaction_id,
+    conversationId: row.conversation_id,
     orderType: row.order_type,
     title: row.title,
     priceAmount: row.price_amount,

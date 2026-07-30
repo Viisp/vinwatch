@@ -64,6 +64,7 @@ create table public.vinted_orders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users on delete cascade not null,
   transaction_id bigint not null,
+  conversation_id bigint,
   order_type text not null check (order_type in ('sold', 'purchased')),
   title text not null,
   price_amount text not null,
@@ -97,3 +98,8 @@ alter table public.vinted_session
   add column if not exists vinted_login text,
   add column if not exists vinted_profile_url text,
   add column if not exists vinted_photo_url text;
+
+-- Migration: same as above, for vinted_orders.conversation_id (used to link
+-- each row to its Vinted conversation thread).
+alter table public.vinted_orders
+  add column if not exists conversation_id bigint;

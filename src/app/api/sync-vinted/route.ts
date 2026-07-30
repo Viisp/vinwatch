@@ -99,6 +99,7 @@ function toOrderRow(order: VintedOrder, userId: string, orderType: 'sold' | 'pur
   return {
     user_id: userId,
     transaction_id: order.transactionId,
+    conversation_id: order.conversationId,
     order_type: orderType,
     title: order.title,
     price_amount: order.priceAmount,
@@ -162,11 +163,6 @@ export async function GET(request: Request) {
         const purchasedMsg =
           'error' in purchasedResult ? purchasedResult.error.message : 'page did not render as expected';
         throw new Error(`both sold and purchased fetches failed: sold=${soldMsg}; purchased=${purchasedMsg}`);
-      }
-
-      if (!('error' in soldResult)) {
-        const m = soldResult.html.match(/\\"preloadedOrders\\":\{\\"orders\\":(\[[\s\S]*?\])(?:,\\"pagination\\"|\})/);
-        console.log(`[debug order fields] ${m ? m[1].slice(0, 1500) : 'no match'}`);
       }
 
       const soldOrders = soldLooksValid && !('error' in soldResult) ? parseVintedOrders(soldResult.html) : [];

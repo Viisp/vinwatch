@@ -12,6 +12,7 @@ describe('parseVintedOrders', () => {
     expect(orders).toHaveLength(2);
     expect(orders[0]).toEqual({
       transactionId: 21200090946,
+      conversationId: 23996837200,
       title: 'Maillot Adidas',
       priceAmount: '20.0',
       priceCurrency: 'EUR',
