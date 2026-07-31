@@ -67,13 +67,13 @@ export function FavoriteMessagesCard() {
         </p>
 
         {messages.map((m) => (
-          <div key={m.id} className="rounded-lg border border-[#243552] bg-[#0d1b2a] p-3 space-y-2">
+          <div key={m.id} className="rounded-xl border border-[#243552] bg-[#0d1b2a] p-4 space-y-3">
             <div className="flex items-center gap-2">
               <input
                 value={m.label}
                 onChange={(e) => updateMessage(m.id, { label: e.target.value })}
                 placeholder="Nom du message (ex: Remerciement)"
-                className="flex-1 rounded-md bg-[#1a2d42] border border-[#243552] px-2 py-1 text-sm text-slate-200"
+                className="flex-1 rounded-lg bg-[#1a2d42] border border-[#243552] px-3 py-2 text-sm text-slate-100 font-medium placeholder:text-slate-500 placeholder:font-normal outline-none focus:border-[#00c896]/60 focus:ring-1 focus:ring-[#00c896]/40"
               />
               <Button variant="ghost" size="icon-sm" onClick={() => removeMessage(m.id)} aria-label="Supprimer">
                 <Trash2 className="w-4 h-4 text-red-400" />
@@ -83,8 +83,8 @@ export function FavoriteMessagesCard() {
               value={m.content}
               onChange={(e) => updateMessage(m.id, { content: e.target.value })}
               placeholder="Contenu du message…"
-              rows={3}
-              className="w-full rounded-md bg-[#1a2d42] border border-[#243552] p-2 text-sm text-slate-200"
+              rows={6}
+              className="w-full resize-none rounded-lg bg-[#1a2d42] border border-[#243552] p-3 text-sm leading-relaxed text-slate-200 outline-none focus:border-[#00c896]/60 focus:ring-1 focus:ring-[#00c896]/40"
             />
             <Button
               variant="secondary"
