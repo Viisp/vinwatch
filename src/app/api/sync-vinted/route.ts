@@ -111,15 +111,20 @@ async function notifySyncFailure(reason: string): Promise<void> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        content: '<@1532853781039939868>',
-        allowed_mentions: { users: ['1532853781039939868'] },
+        content: '<@209033474244345856>',
+        allowed_mentions: { users: ['209033474244345856'] },
         embeds: [
           {
-            title: '⚠️ Synchronisation Vinted échouée',
-            description: reason,
+            title: '🚨 Oups, la synchro Vinted a échoué !',
+            description: `💥 ${reason}\n\n🔧 [Ouvrir Paramètres pour corriger →](https://vinwatch.fr/parametres)`,
             color: 0xef4444, // rouge, cohérent avec les accents "achats"/erreur du site
             url: 'https://vinwatch.fr/parametres',
-            footer: { text: 'VinWatch' },
+            thumbnail: { url: 'https://vinwatch.fr/logo.png' },
+            fields: [
+              { name: '📅 Quand', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
+              { name: '🔁 Prochaine tentative', value: 'Demain à 15h (heure de Paris)', inline: true },
+            ],
+            footer: { text: '🐝 VinWatch — Suivi Vinted' },
             timestamp: new Date().toISOString(),
           },
         ],
