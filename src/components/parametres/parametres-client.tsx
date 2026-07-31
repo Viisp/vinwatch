@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase';
 import { getSyncStatus } from '@/lib/vinted-orders';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ButtonColorful } from '@/components/ui/button-colorful';
+import { FavoriteMessagesCard } from './favorite-messages-card';
 import { KeyRound } from 'lucide-react';
 
 export function ParametresClient() {
@@ -72,6 +73,8 @@ export function ParametresClient() {
           )}
         </CardContent>
       </Card>
+
+      <FavoriteMessagesCard />
 
       <Card className="bg-[#1a2d42]/80 border-[#243552]">
         <CardHeader>
