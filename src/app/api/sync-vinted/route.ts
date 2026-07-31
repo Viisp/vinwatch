@@ -195,31 +195,36 @@ export async function GET(request: Request) {
       const succeededResult = !('error' in soldResult) ? soldResult : !('error' in purchasedResult) ? purchasedResult : null;
       const profile = succeededResult ? parseVintedProfile(succeededResult.html) : null;
 
-      if (profile?.profileUrl) {
-        const browser = await playwrightChromium.launch({
-          args: chromium.args,
-          executablePath: await chromium.executablePath(),
-          headless: true,
-        });
-        try {
-          const context = await browser.newContext({
-            userAgent:
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+      if (succeededResult) {
+        const csrfMatch = succeededResult.html.match(/<meta name="csrf-token" content="([^"]+)"/);
+        const anonIdMatch = succeededResult.html.match(/\\"anon_id\\":\\"([^"\\]+)\\"/);
+        console.log(
+          `[debug api v2] csrf found: ${!!csrfMatch}, anon_id found: ${!!anonIdMatch}`
+        );
+        if (csrfMatch) {
+          const browser = await playwrightChromium.launch({
+            args: chromium.args,
+            executablePath: await chromium.executablePath(),
+            headless: true,
           });
-          await context.addCookies(cookies);
-          const page = await context.newPage();
-          await page.goto(profile.profileUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
-          await page.waitForTimeout(2500);
-          const html = await page.content();
-          console.log(`[debug profile page v3] landed on: ${page.url()}, html length: ${html.length}`);
-          const eurCount = html.split('EUR').length - 1;
-          console.log(`[debug profile page v3] "EUR" occurrences: ${eurCount}`);
-          const firstEur = html.indexOf('EUR');
-          if (firstEur !== -1) {
-            console.log(`[debug profile page v3] context around first EUR: ${html.slice(Math.max(0, firstEur - 300), firstEur + 100)}`);
+          try {
+            const context = await browser.newContext({
+              userAgent:
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+            });
+            await context.addCookies(succeededResult.refreshedCookies);
+            const res = await context.request.get('https://www.vinted.fr/api/v2/items?page=1&per_page=20', {
+              headers: {
+                'X-CSRF-Token': csrfMatch[1],
+                ...(anonIdMatch ? { 'X-Anon-Id': anonIdMatch[1] } : {}),
+                Accept: 'application/json',
+              },
+            });
+            const body = await res.text();
+            console.log(`[debug api v2] status=${res.status()} body=${body.slice(0, 1500)}`);
+          } finally {
+            await browser.close();
           }
-        } finally {
-          await browser.close();
         }
       }
 
