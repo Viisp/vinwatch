@@ -5,6 +5,7 @@ const navLinks = [
   { title: 'Dashboard', href: '/' },
   { title: 'Ventes', href: '/ventes' },
   { title: 'Achats', href: '/achats' },
+  { title: 'Paramètres', href: '/parametres' },
 ];
 
 export function FooterSection() {

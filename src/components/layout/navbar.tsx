@@ -12,6 +12,7 @@ const links = [
   { href: '/', label: 'Dashboard' },
   { href: '/ventes', label: 'Ventes' },
   { href: '/achats', label: 'Achats' },
+  { href: '/parametres', label: 'Paramètres' },
 ];
 
 export function Navbar() {
