@@ -208,8 +208,8 @@ export async function GET(request: Request) {
           });
           await context.addCookies(cookies);
           const page = await context.newPage();
-          await page.goto(profile.profileUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-          await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
+          await page.goto(profile.profileUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+          await page.waitForTimeout(2000);
           const html = await page.content();
           const priceMarker = '\\"price\\":{\\"amount\\"';
           const occurrences = html.split(priceMarker).length - 1;
