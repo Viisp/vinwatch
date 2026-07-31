@@ -209,13 +209,14 @@ export async function GET(request: Request) {
           await context.addCookies(cookies);
           const page = await context.newPage();
           await page.goto(profile.profileUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+          await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
           const html = await page.content();
-          const candidates = ['\\"items\\"', '\\"closet', '\\"itemBox', '\\"catalogItems\\"', '\\"wardrobe'];
-          for (const marker of candidates) {
-            const idx = html.indexOf(marker);
-            console.log(
-              `[debug profile page] marker ${marker}: ${idx === -1 ? 'not found' : html.slice(Math.max(0, idx - 50), idx + 500)}`
-            );
+          const priceMarker = '\\"price\\":{\\"amount\\"';
+          const occurrences = html.split(priceMarker).length - 1;
+          console.log(`[debug profile page v2] price-shaped objects found: ${occurrences}`);
+          const firstIdx = html.indexOf(priceMarker);
+          if (firstIdx !== -1) {
+            console.log(`[debug profile page v2] context around first: ${html.slice(Math.max(0, firstIdx - 400), firstIdx + 200)}`);
           }
         } finally {
           await browser.close();
