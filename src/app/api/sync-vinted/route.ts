@@ -103,6 +103,23 @@ async function fetchOrdersHtml(
   }
 }
 
+async function notifySyncFailure(reason: string): Promise<void> {
+  const webhookUrl = process.env.DISCORD_ALERT_WEBHOOK_URL;
+  if (!webhookUrl) return;
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: `⚠️ **VinWatch — Synchronisation Vinted échouée**\n${reason}`,
+      }),
+    });
+  } catch {
+    // Best-effort notification — a failed webhook call must never mask or
+    // replace the real sync failure being reported below.
+  }
+}
+
 function toOrderRow(order: VintedOrder, userId: string, orderType: 'sold' | 'purchased') {
   return {
     user_id: userId,
@@ -154,6 +171,9 @@ export async function GET(request: Request) {
           .from('vinted_session')
           .update({ last_sync_status: 'expired', last_sync_at: new Date().toISOString() })
           .eq('user_id', session.user_id);
+        await notifySyncFailure(
+          'Session expirée — va sur vinwatch.fr → Paramètres pour recoller tes cookies Vinted.'
+        );
         results[session.user_id] = 'expired';
         continue;
       }
@@ -234,6 +254,7 @@ export async function GET(request: Request) {
           : typeof err === 'object' && err !== null && 'message' in err
             ? String((err as { message: unknown }).message)
             : String(err);
+      await notifySyncFailure(`Erreur technique : ${message}`);
       results[session.user_id] = `error: ${message}`;
     }
   }
