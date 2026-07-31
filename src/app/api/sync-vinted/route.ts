@@ -81,6 +81,14 @@ async function fetchOrdersHtml(
       waitUntil: 'domcontentloaded',
       timeout: 30000,
     });
+    // domcontentloaded fires on the raw HTML before the SPA has hydrated —
+    // too early for Vinted's own client-side code to have had a chance to
+    // detect an expiring access_token_web and silently refresh it via
+    // refresh_token_web. Give it a beat to finish that network activity
+    // before reading cookies back out, or every "refresh" just re-saves the
+    // same soon-to-expire token. Capped so a page with persistent background
+    // polling (analytics, etc.) can't hang the sync.
+    await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
     const html = await page.content();
     const url = page.url();
     // Vinted's own SPA silently rotates access_token_web using
