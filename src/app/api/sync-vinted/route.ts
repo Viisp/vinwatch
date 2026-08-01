@@ -103,6 +103,34 @@ async function fetchOrdersHtml(
   }
 }
 
+async function notifySyncRecovery(): Promise<void> {
+  const webhookUrl = process.env.DISCORD_ALERT_WEBHOOK_URL;
+  if (!webhookUrl) return;
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        embeds: [
+          {
+            title: '✅ Bravo, la synchro Vinted est rétablie !',
+            description: '🎉 Tout est reparti normalement, tes ventes et achats se resynchronisent comme prévu.',
+            color: 0x00c896, // vert VinWatch
+            url: 'https://vinwatch.fr',
+            thumbnail: { url: 'https://vinwatch.fr/logo.png' },
+            fields: [{ name: '📅 Quand', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }],
+            footer: { text: '🐝 VinWatch — Suivi Vinted' },
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      }),
+    });
+  } catch {
+    // Best-effort — a failed webhook call here must never affect the sync
+    // result itself, which has already succeeded by this point.
+  }
+}
+
 async function notifySyncFailure(reason: string): Promise<void> {
   const webhookUrl = process.env.DISCORD_ALERT_WEBHOOK_URL;
   if (!webhookUrl) return;
@@ -160,7 +188,7 @@ export async function GET(request: Request) {
   const supabase = createAdminClient();
   const { data: sessions, error: sessionsError } = await supabase
     .from('vinted_session')
-    .select('user_id, cookies_encrypted');
+    .select('user_id, cookies_encrypted, last_sync_status');
 
   if (sessionsError) {
     return NextResponse.json({ error: sessionsError.message }, { status: 500 });
@@ -254,6 +282,13 @@ export async function GET(request: Request) {
             : {}),
         })
         .eq('user_id', session.user_id);
+
+      // Only announce recovery, not every successful sync — otherwise this
+      // fires once a day (every cron run), which is just noise.
+      if (session.last_sync_status === 'expired' || session.last_sync_status === 'error') {
+        await notifySyncRecovery();
+      }
+
       const partialNote = soldLooksValid && purchasedLooksValid ? '' : ' (partial: only one side succeeded)';
       results[session.user_id] = `ok (${rows.length} orders)${partialNote}`;
     } catch (err) {
