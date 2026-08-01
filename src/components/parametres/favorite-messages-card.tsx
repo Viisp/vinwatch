@@ -50,6 +50,7 @@ export function FavoriteMessagesCard() {
     setSaving(true);
     try {
       await saveFavoriteMessages(messages);
+      setExpandedIds(new Set());
     } catch (err) {
       console.error('[FavoriteMessagesCard] save failed:', err);
     } finally {
