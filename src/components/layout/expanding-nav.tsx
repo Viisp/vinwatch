@@ -7,7 +7,7 @@ const links = [
   { href: '/',               label: 'Dashboard',      icon: LayoutDashboard },
   { href: '/ventes',         label: 'Ventes',          icon: TrendingUp },
   { href: '/achats',         label: 'Achats',          icon: ShoppingBag },
-  { href: '/prompts-photos', label: 'Prompts photos',  icon: Camera },
+  { href: '/prompts-photos', label: 'Prompts',  icon: Camera },
   { href: '/parametres',     label: 'Paramètres',      icon: Settings },
 ];
 
