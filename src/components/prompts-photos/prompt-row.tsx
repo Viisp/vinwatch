@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { Copy, Check, ChevronDown, Trash2 } from 'lucide-react';
 import type { PhotoPrompt } from '@/data/photo-prompts';
 
+const EMOJI_CHOICES = ['🟢', '🔵', '🟡', '🟣', '⚫', '⚪', '🔴', '🟠', '🏷️', '🔖', '🔍', '✨'];
+
 export function PromptRow({
   prompt,
   id,
@@ -77,6 +79,18 @@ export function PromptRow({
             >
               <Trash2 className="w-4 h-4" />
             </button>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {EMOJI_CHOICES.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => onChange({ emoji })}
+                className={`rounded-md p-1.5 text-base hover:bg-[#1a2d42] ${prompt.emoji === emoji ? 'bg-[#1a2d42] ring-1 ring-[#00c896]/60' : ''}`}
+              >
+                {emoji}
+              </button>
+            ))}
           </div>
           <textarea
             value={prompt.text}

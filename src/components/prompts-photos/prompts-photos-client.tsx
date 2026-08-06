@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { PromptRow } from './prompt-row';
 import { DEFAULT_PROMPT_CATEGORIES, type PromptCategory, type PhotoPrompt } from '@/data/photo-prompts';
 import { getPhotoPromptCategories, savePhotoPromptCategories } from '@/lib/photo-prompts';
-import { Camera, Plus, Trash2 } from 'lucide-react';
+import { Camera, Plus, Trash2, Pencil, Check } from 'lucide-react';
 
 function newCategory(): PromptCategory {
   const id = crypto.randomUUID();
@@ -16,11 +16,17 @@ function newPrompt(): PhotoPrompt {
   return { id: crypto.randomUUID(), angle: '', emoji: '🟢', text: '' };
 }
 
+const EMOJI_CHOICES = [
+  '👕', '👔', '🩳', '🎽', '🧥', '👖', '👟', '👗', '👘', '🧦', '🧤', '🧣', '🩱', '👙', '🥾', '👞', '👠', '🎩', '🧢', '👒',
+  '✨', '🏷️', '🔖', '🔍', '🟢', '🔵', '🟡', '🟣', '⚫', '⚪', '🔴', '🟠',
+];
+
 export function PromptsPhotosClient() {
   const [categories, setCategories] = useState<PromptCategory[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [editingCatIds, setEditingCatIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     getPhotoPromptCategories().then((saved) => {
@@ -40,6 +46,15 @@ export function PromptsPhotosClient() {
 
   function updateCategory(catId: string, patch: Partial<PromptCategory>) {
     setCategories((prev) => prev.map((c) => (c.id === catId ? { ...c, ...patch } : c)));
+  }
+
+  function toggleEditingCategory(catId: string) {
+    setEditingCatIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(catId)) next.delete(catId);
+      else next.add(catId);
+      return next;
+    });
   }
 
   function removeCategory(catId: string) {
@@ -118,22 +133,53 @@ export function PromptsPhotosClient() {
             className="bg-[#1a2d42]/80 border-[#243552] scroll-mt-20 mb-4 break-inside-avoid"
           >
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <input
-                  value={c.emoji}
-                  onChange={(e) => updateCategory(c.id, { emoji: e.target.value })}
-                  className="w-12 rounded-lg bg-[#0d1b2a] border border-[#243552] px-2 py-2 text-sm text-center text-slate-100 outline-none focus:border-[#00c896]/60 focus:ring-1 focus:ring-[#00c896]/40"
-                />
-                <input
-                  value={c.name}
-                  onChange={(e) => updateCategory(c.id, { name: e.target.value })}
-                  placeholder="Nom de la catégorie"
-                  className="flex-1 rounded-lg bg-[#0d1b2a] border border-[#243552] px-3 py-2 text-sm text-slate-100 font-semibold outline-none focus:border-[#00c896]/60 focus:ring-1 focus:ring-[#00c896]/40"
-                />
-                <Button variant="ghost" size="icon-sm" onClick={() => removeCategory(c.id)} aria-label="Supprimer la catégorie">
-                  <Trash2 className="w-4 h-4 text-red-400" />
-                </Button>
-              </div>
+              {editingCatIds.has(c.id) ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={c.emoji}
+                      onChange={(e) => updateCategory(c.id, { emoji: e.target.value })}
+                      className="w-12 rounded-lg bg-[#0d1b2a] border border-[#243552] px-2 py-2 text-sm text-center text-slate-100 outline-none focus:border-[#00c896]/60 focus:ring-1 focus:ring-[#00c896]/40"
+                    />
+                    <input
+                      value={c.name}
+                      onChange={(e) => updateCategory(c.id, { name: e.target.value })}
+                      placeholder="Nom de la catégorie"
+                      className="flex-1 rounded-lg bg-[#0d1b2a] border border-[#243552] px-3 py-2 text-sm text-slate-100 font-semibold outline-none focus:border-[#00c896]/60 focus:ring-1 focus:ring-[#00c896]/40"
+                    />
+                    <Button variant="ghost" size="icon-sm" onClick={() => toggleEditingCategory(c.id)} aria-label="Valider">
+                      <Check className="w-4 h-4 text-[#00c896]" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => removeCategory(c.id)} aria-label="Supprimer la catégorie">
+                      <Trash2 className="w-4 h-4 text-red-400" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {EMOJI_CHOICES.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => updateCategory(c.id, { emoji })}
+                        className={`rounded-md p-1.5 text-base hover:bg-[#0d1b2a] ${c.emoji === emoji ? 'bg-[#0d1b2a] ring-1 ring-[#00c896]/60' : ''}`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="flex-1 text-base font-semibold text-slate-100">
+                    {c.emoji} {c.name || 'Sans nom'}
+                  </span>
+                  <Button variant="ghost" size="icon-sm" onClick={() => toggleEditingCategory(c.id)} aria-label="Modifier">
+                    <Pencil className="w-4 h-4 text-slate-400" />
+                  </Button>
+                  <Button variant="ghost" size="icon-sm" onClick={() => removeCategory(c.id)} aria-label="Supprimer la catégorie">
+                    <Trash2 className="w-4 h-4 text-red-400" />
+                  </Button>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="space-y-2">
               {c.prompts.map((p) => (
