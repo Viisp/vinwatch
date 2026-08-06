@@ -12,6 +12,7 @@ const links = [
   { href: '/', label: 'Dashboard' },
   { href: '/ventes', label: 'Ventes' },
   { href: '/achats', label: 'Achats' },
+  { href: '/prompts-photos', label: 'Prompts photos' },
   { href: '/parametres', label: 'Paramètres' },
 ];
 
