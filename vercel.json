@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/sync-vinted",
-      "schedule": "46 19 * * *"
+      "schedule": "5 20 * * *"
     }
   ]
 }
