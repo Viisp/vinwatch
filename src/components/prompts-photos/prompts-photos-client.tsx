@@ -26,19 +26,19 @@ export function PromptsPhotosClient() {
       </p>
 
       {/* Quick nav */}
-      <div className="flex flex-wrap gap-2 mb-8">
+      <div className="grid grid-cols-2 gap-2 mb-8">
         {GARMENT_PROMPTS.map((g) => (
           <a
             key={g.slug}
             href={`#${g.slug}`}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#243552] bg-[#1a2d42] px-3 py-1.5 text-sm text-slate-200 hover:border-[#00c896]/60 hover:text-[#00c896] transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-[#243552] bg-[#1a2d42] px-3 py-2 text-sm text-slate-200 hover:border-[#00c896]/60 hover:text-[#00c896] transition-colors"
           >
             <span>{g.emoji}</span> {g.name}
           </a>
         ))}
         <a
           href="#generique"
-          className="inline-flex items-center gap-1.5 rounded-full border border-[#243552] bg-[#1a2d42] px-3 py-1.5 text-sm text-slate-200 hover:border-[#00c896]/60 hover:text-[#00c896] transition-colors"
+          className="flex items-center gap-1.5 rounded-lg border border-[#243552] bg-[#1a2d42] px-3 py-2 text-sm text-slate-200 hover:border-[#00c896]/60 hover:text-[#00c896] transition-colors"
         >
           <Sparkles className="w-3.5 h-3.5" /> Génériques
         </a>
