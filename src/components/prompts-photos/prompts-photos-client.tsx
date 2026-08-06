@@ -154,7 +154,7 @@ export function PromptsPhotosClient() {
         ))}
       </div>
 
-      <div className="flex items-center gap-3 mt-6">
+      <div className="flex items-center justify-center gap-3 mt-6 pt-6 border-t border-[#243552]">
         <Button variant="outline" size="sm" onClick={addCategory}>
           <Plus className="w-3.5 h-3.5" /> Ajouter une catégorie
         </Button>
