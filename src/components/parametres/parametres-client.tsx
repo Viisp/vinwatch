@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase';
 import { getVintedAccounts, type VintedAccount } from '@/lib/vinted-orders';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FavoriteMessagesCard } from './favorite-messages-card';
 import { KeyRound, ChevronDown, Trash2, Plus } from 'lucide-react';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -237,8 +236,6 @@ export function ParametresClient() {
         <KeyRound className="w-5 h-5 text-[#00c896]" />
         Paramètres
       </h1>
-
-      <FavoriteMessagesCard />
 
       <Card className="bg-[#1a2d42]/80 border-[#243552]">
         <CardHeader>
