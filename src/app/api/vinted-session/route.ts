@@ -52,6 +52,25 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true });
 }
 
+export async function PATCH(request: Request) {
+  const auth = await authenticate(request);
+  if (!auth) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const { supabase, user } = auth;
+
+  const body = await request.json();
+  if (!body.sessionId || typeof body.label !== 'string' || !body.label.trim()) {
+    return NextResponse.json({ error: 'sessionId and a non-empty label are required' }, { status: 400 });
+  }
+
+  const { error } = await supabase
+    .from('vinted_session')
+    .update({ label: body.label.trim() })
+    .eq('id', body.sessionId)
+    .eq('user_id', user.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
 export async function DELETE(request: Request) {
   const auth = await authenticate(request);
   if (!auth) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });

@@ -28,6 +28,27 @@ function AccountCard({ account, onChanged }: { account: VintedAccount; onChanged
   const [cookiesJson, setCookiesJson] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [labelInput, setLabelInput] = useState(account.label);
+  const [renaming, setRenaming] = useState(false);
+
+  async function handleRename() {
+    if (!labelInput.trim() || labelInput.trim() === account.label) return;
+    setRenaming(true);
+    try {
+      const headers = await authHeader();
+      const res = await fetch('/api/vinted-session', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ sessionId: account.id, label: labelInput.trim() }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Erreur inconnue');
+      onChanged();
+    } catch (err) {
+      setMessage(`Erreur : ${err instanceof Error ? err.message : 'erreur inconnue'}`);
+    } finally {
+      setRenaming(false);
+    }
+  }
 
   async function handleRepaste() {
     setSaving(true);
@@ -81,6 +102,22 @@ function AccountCard({ account, onChanged }: { account: VintedAccount; onChanged
       </button>
       {expanded && (
         <div className="px-4 pb-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <input
+              value={labelInput}
+              onChange={(e) => setLabelInput(e.target.value)}
+              placeholder="Nom du compte"
+              className="flex-1 rounded-lg bg-[#1a2d42] border border-[#243552] px-3 py-2 text-sm text-slate-100 outline-none focus:border-[#00c896]/60 focus:ring-1 focus:ring-[#00c896]/40"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRename}
+              disabled={renaming || !labelInput.trim() || labelInput.trim() === account.label}
+            >
+              {renaming ? 'Renommage…' : 'Renommer'}
+            </Button>
+          </div>
           {account.lastSyncAt && (
             <p className="text-xs text-slate-500">
               Dernière tentative le {new Date(account.lastSyncAt).toLocaleString('fr-FR')}
