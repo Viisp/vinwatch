@@ -13,6 +13,7 @@ function order(overrides: Partial<StoredOrder>): StoredOrder {
     photoUrl: null,
     status: 'ok',
     orderDate: '2026-07-01T00:00:00+02:00',
+    vintedAccountLabel: null,
     ...overrides,
   };
 }

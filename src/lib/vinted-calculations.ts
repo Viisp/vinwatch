@@ -9,6 +9,7 @@ export interface StoredOrder {
   photoUrl: string | null;
   status: string;
   orderDate: string;
+  vintedAccountLabel: string | null;
 }
 
 export interface OrdersSummary {

@@ -58,6 +58,11 @@ export function AchatsClient() {
                     <p className="text-sm font-medium text-slate-200 truncate">{order.title}</p>
                     <p className="text-xs text-slate-500 mt-0.5">
                       {new Date(order.orderDate).toLocaleDateString('fr-FR')} · {order.status}
+                      {order.vintedAccountLabel && (
+                        <span className="ml-2 rounded-full bg-[#243552] px-2 py-0.5 text-[10px] text-slate-400">
+                          {order.vintedAccountLabel}
+                        </span>
+                      )}
                     </p>
                   </div>
                   <span className="text-sm font-semibold text-red-400 shrink-0">-{formatPrice(order)}</span>

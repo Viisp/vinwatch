@@ -103,3 +103,18 @@ alter table public.vinted_session
 -- each row to its Vinted conversation thread).
 alter table public.vinted_orders
   add column if not exists conversation_id bigint;
+
+-- Migration: support multiple Vinted accounts per VinWatch user (e.g. one
+-- account for selling, one for buying). vinted_session moves from
+-- "user_id is the primary key" (one row per user) to "id is the primary
+-- key, user_id is just a foreign key" (many rows per user), each row
+-- labeled so the UI can tell them apart.
+alter table public.vinted_session drop constraint if exists vinted_session_pkey;
+alter table public.vinted_session add column if not exists id uuid primary key default gen_random_uuid();
+alter table public.vinted_session add column if not exists label text not null default 'Compte Vinted';
+create index if not exists idx_vinted_session_user_id on public.vinted_session (user_id);
+
+-- Tag each synced order with which Vinted account it came from, so orders
+-- from both accounts can be shown merged with a small badge saying which
+-- is which.
+alter table public.vinted_orders add column if not exists vinted_account_label text;

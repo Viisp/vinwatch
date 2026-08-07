@@ -164,7 +164,7 @@ async function notifySyncFailure(reason: string): Promise<void> {
   }
 }
 
-function toOrderRow(order: VintedOrder, userId: string, orderType: 'sold' | 'purchased') {
+function toOrderRow(order: VintedOrder, userId: string, orderType: 'sold' | 'purchased', accountLabel: string) {
   return {
     user_id: userId,
     transaction_id: order.transactionId,
@@ -176,6 +176,7 @@ function toOrderRow(order: VintedOrder, userId: string, orderType: 'sold' | 'pur
     photo_url: order.photoUrl,
     status: order.status,
     order_date: order.date,
+    vinted_account_label: accountLabel,
   };
 }
 
@@ -186,9 +187,11 @@ export async function GET(request: Request) {
   }
 
   const supabase = createAdminClient();
+  // Multiple rows can belong to the same user_id now — one per linked
+  // Vinted account (e.g. a separate account for selling vs buying).
   const { data: sessions, error: sessionsError } = await supabase
     .from('vinted_session')
-    .select('user_id, cookies_encrypted, last_sync_status');
+    .select('id, user_id, cookies_encrypted, last_sync_status, label');
 
   if (sessionsError) {
     return NextResponse.json({ error: sessionsError.message }, { status: 500 });
@@ -214,11 +217,11 @@ export async function GET(request: Request) {
         await supabase
           .from('vinted_session')
           .update({ last_sync_status: 'expired', last_sync_at: new Date().toISOString() })
-          .eq('user_id', session.user_id);
+          .eq('id', session.id);
         await notifySyncFailure(
-          'Session expirée — va sur vinwatch.fr → Paramètres pour recoller tes cookies Vinted.'
+          `Session expirée (${session.label}) — va sur vinwatch.fr → Paramètres pour recoller tes cookies Vinted.`
         );
-        results[session.user_id] = 'expired';
+        results[session.id] = 'expired';
         continue;
       }
 
@@ -241,9 +244,10 @@ export async function GET(request: Request) {
       const purchasedOrders =
         purchasedLooksValid && !('error' in purchasedResult) ? parseVintedOrders(purchasedResult.html) : [];
 
+      const accountLabel = session.label;
       const rows = [
-        ...soldOrders.map((o) => toOrderRow(o, session.user_id, 'sold')),
-        ...purchasedOrders.map((o) => toOrderRow(o, session.user_id, 'purchased')),
+        ...soldOrders.map((o) => toOrderRow(o, session.user_id, 'sold', accountLabel)),
+        ...purchasedOrders.map((o) => toOrderRow(o, session.user_id, 'purchased', accountLabel)),
       ];
 
       if (rows.length > 0) {
@@ -281,7 +285,7 @@ export async function GET(request: Request) {
               }
             : {}),
         })
-        .eq('user_id', session.user_id);
+        .eq('id', session.id);
 
       // Only announce recovery, not every successful sync — otherwise this
       // fires once a day (every cron run), which is just noise.
@@ -290,12 +294,12 @@ export async function GET(request: Request) {
       }
 
       const partialNote = soldLooksValid && purchasedLooksValid ? '' : ' (partial: only one side succeeded)';
-      results[session.user_id] = `ok (${rows.length} orders)${partialNote}`;
+      results[session.id] = `${session.label}: ok (${rows.length} orders)${partialNote}`;
     } catch (err) {
       await supabase
         .from('vinted_session')
         .update({ last_sync_status: 'error', last_sync_at: new Date().toISOString() })
-        .eq('user_id', session.user_id);
+        .eq('id', session.id);
       // Supabase/PostgREST errors are plain objects with a `.message`, not
       // native Error instances — String(err) on those just gives
       // "[object Object]", which is useless for diagnosing what broke.
@@ -305,8 +309,8 @@ export async function GET(request: Request) {
           : typeof err === 'object' && err !== null && 'message' in err
             ? String((err as { message: unknown }).message)
             : String(err);
-      await notifySyncFailure(`Erreur technique : ${message}`);
-      results[session.user_id] = `error: ${message}`;
+      await notifySyncFailure(`Erreur technique (${session.label}) : ${message}`);
+      results[session.id] = `${session.label}: error: ${message}`;
     }
   }
 

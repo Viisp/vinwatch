@@ -24,6 +24,7 @@ export async function getOrders(orderType?: 'sold' | 'purchased'): Promise<Store
     photoUrl: row.photo_url,
     status: row.status,
     orderDate: row.order_date,
+    vintedAccountLabel: row.vinted_account_label,
   }));
 }
 
@@ -33,6 +34,9 @@ export interface VintedProfileInfo {
   photoUrl: string | null;
 }
 
+// Used for the nav bar avatar/pseudo, which only has room for one identity —
+// picks whichever linked Vinted account comes back first. For managing all
+// linked accounts, see getVintedAccounts below.
 export async function getVintedProfile(): Promise<VintedProfileInfo | null> {
   const supabase = createClient();
   const {
@@ -44,6 +48,8 @@ export async function getVintedProfile(): Promise<VintedProfileInfo | null> {
     .from('vinted_session')
     .select('vinted_login, vinted_profile_url, vinted_photo_url')
     .eq('user_id', user.id)
+    .not('vinted_login', 'is', null)
+    .limit(1)
     .maybeSingle();
 
   if (error) {
@@ -54,21 +60,41 @@ export async function getVintedProfile(): Promise<VintedProfileInfo | null> {
   return { login: data.vinted_login, profileUrl: data.vinted_profile_url, photoUrl: data.vinted_photo_url };
 }
 
-export async function getSyncStatus(): Promise<{ status: string; lastSyncAt: string | null } | null> {
+export interface VintedAccount {
+  id: string;
+  label: string;
+  login: string | null;
+  profileUrl: string | null;
+  photoUrl: string | null;
+  lastSyncStatus: string;
+  lastSyncAt: string | null;
+}
+
+/** All Vinted accounts linked to the current VinWatch user (e.g. one for selling, one for buying). */
+export async function getVintedAccounts(): Promise<VintedAccount[]> {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
 
   const { data, error } = await supabase
     .from('vinted_session')
-    .select('last_sync_status, last_sync_at')
+    .select('id, label, vinted_login, vinted_profile_url, vinted_photo_url, last_sync_status, last_sync_at')
     .eq('user_id', user.id)
-    .maybeSingle();
+    .order('updated_at', { ascending: true });
 
   if (error) {
-    console.error('[getSyncStatus] Supabase query failed:', error.message);
-    return null;
+    console.error('[getVintedAccounts] Supabase query failed:', error.message);
+    return [];
   }
-  if (!data) return null;
-  return { status: data.last_sync_status, lastSyncAt: data.last_sync_at };
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    label: row.label,
+    login: row.vinted_login,
+    profileUrl: row.vinted_profile_url,
+    photoUrl: row.vinted_photo_url,
+    lastSyncStatus: row.last_sync_status,
+    lastSyncAt: row.last_sync_at,
+  }));
 }
