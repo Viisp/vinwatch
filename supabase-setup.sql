@@ -118,3 +118,22 @@ create index if not exists idx_vinted_session_user_id on public.vinted_session (
 -- from both accounts can be shown merged with a small badge saying which
 -- is which.
 alter table public.vinted_orders add column if not exists vinted_account_label text;
+
+-- Avatar uploads for the profile page. Public bucket (avatars are meant to
+-- be viewable, same as any social app) but writes are restricted to files
+-- under the uploader's own auth.uid()/ prefix.
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+create policy "avatar images are publicly accessible"
+  on storage.objects for select
+  using (bucket_id = 'avatars');
+
+create policy "users can upload their own avatar"
+  on storage.objects for insert
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy "users can update their own avatar"
+  on storage.objects for update
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
