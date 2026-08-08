@@ -6,7 +6,6 @@ const navLinks = [
   { title: 'Ventes', href: '/ventes' },
   { title: 'Achats', href: '/achats' },
   { title: 'Prompts', href: '/prompts-photos' },
-  { title: 'Paramètres', href: '/parametres' },
 ];
 
 export function FooterSection() {

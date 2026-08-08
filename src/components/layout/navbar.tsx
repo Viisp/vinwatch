@@ -13,7 +13,6 @@ const links = [
   { href: '/ventes', label: 'Ventes' },
   { href: '/achats', label: 'Achats' },
   { href: '/prompts-photos', label: 'Prompts' },
-  { href: '/parametres', label: 'Paramètres' },
 ];
 
 export function Navbar() {
