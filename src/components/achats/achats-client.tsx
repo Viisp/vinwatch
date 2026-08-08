@@ -1,10 +1,14 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { getOrders } from '@/lib/vinted-orders';
 import { vintedOrderUrl, type StoredOrder } from '@/lib/vinted-calculations';
 import { ShoppingBag } from 'lucide-react';
+import SearchComponent from '@/components/ui/animated-glowing-search-bar';
+import { Pagination } from '@/components/ui/pagination';
+
+const PAGE_SIZE = 10;
 
 function formatPrice(order: StoredOrder): string {
   return `${order.priceAmount} ${order.priceCurrency}`;
@@ -13,6 +17,8 @@ function formatPrice(order: StoredOrder): string {
 export function AchatsClient() {
   const [orders, setOrders] = useState<StoredOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     getOrders('purchased').then((data) => {
@@ -21,20 +27,42 @@ export function AchatsClient() {
     });
   }, []);
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return orders;
+    return orders.filter((o) => o.title.toLowerCase().includes(q));
+  }, [orders, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageSafe = Math.min(page, totalPages);
+  const paginated = filtered.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+
+  function handleSearchChange(v: string) {
+    setSearch(v);
+    setPage(1);
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-4 pb-10 sm:px-6 lg:px-8 pt-8">
-      <h1 className="text-2xl font-bold text-slate-100 mb-6 flex items-center gap-2">
-        <ShoppingBag className="w-5 h-5 text-[#00c896]" />
-        Achats ({orders.length})
-      </h1>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
+          <ShoppingBag className="w-5 h-5 text-[#00c896]" />
+          Achats ({filtered.length})
+        </h1>
+        {orders.length > 0 && (
+          <SearchComponent value={search} onChange={handleSearchChange} placeholder="Rechercher un article…" />
+        )}
+      </div>
 
       {loading ? (
         <p className="text-slate-500 text-sm">Chargement…</p>
       ) : orders.length === 0 ? (
         <p className="text-slate-500 text-sm">Aucun achat synchronisé pour l&apos;instant.</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-slate-500 text-sm">Aucun achat ne correspond à &quot;{search}&quot;.</p>
       ) : (
         <div className="space-y-3">
-          {orders.map((order) => {
+          {paginated.map((order) => {
             const url = vintedOrderUrl(order);
             const card = (
               <Card
@@ -79,6 +107,8 @@ export function AchatsClient() {
           })}
         </div>
       )}
+
+      <Pagination page={pageSafe} totalPages={totalPages} onPageChange={setPage} />
     </div>
   );
 }
