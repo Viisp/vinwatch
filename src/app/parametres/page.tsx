@@ -1,5 +1,5 @@
-import { ParametresClient } from '@/components/parametres/parametres-client';
+import { ProfilClient } from '@/components/parametres/profil-client';
 
 export default function ParametresPage() {
-  return <ParametresClient />;
+  return <ProfilClient />;
 }
