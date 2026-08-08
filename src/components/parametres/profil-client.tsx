@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { User as UserIcon, KeyRound, Eye, EyeOff, Camera } from 'lucide-react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { AvatarCropDialog } from '@/components/parametres/avatar-crop-dialog';
 
 export function ProfilClient() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -18,6 +19,7 @@ export function ProfilClient() {
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarMessage, setAvatarMessage] = useState<string | null>(null);
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentPassword, setCurrentPassword] = useState('');
@@ -44,20 +46,25 @@ export function ProfilClient() {
     setNameMessage(error ? `Erreur : ${error.message}` : 'Nom mis à jour.');
   }
 
-  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleAvatarSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    // Reset so picking the same file twice in a row still fires onChange.
+    e.target.value = '';
+    if (file) setPendingAvatarFile(file);
+  }
+
+  async function handleAvatarCropped(blob: Blob) {
+    setPendingAvatarFile(null);
+    if (!user) return;
 
     setUploadingAvatar(true);
     setAvatarMessage(null);
     const supabase = createClient();
 
-    const ext = file.name.split('.').pop();
-    const path = `${user.id}/avatar.${ext}`;
-
+    const path = `${user.id}/avatar.jpg`;
     const { error: uploadError } = await supabase.storage
       .from('avatars')
-      .upload(path, file, { upsert: true, cacheControl: '3600' });
+      .upload(path, blob, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' });
 
     if (uploadError) {
       setUploadingAvatar(false);
@@ -155,7 +162,7 @@ export function ProfilClient() {
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={handleAvatarChange}
+              onChange={handleAvatarSelected}
             />
             <div className="flex flex-col gap-0.5">
               <p className="text-sm text-slate-400">{user.email}</p>
@@ -244,6 +251,12 @@ export function ProfilClient() {
           </CardContent>
         </Card>
       )}
+
+      <AvatarCropDialog
+        file={pendingAvatarFile}
+        onCancel={() => setPendingAvatarFile(null)}
+        onCropped={handleAvatarCropped}
+      />
     </div>
   );
 }
