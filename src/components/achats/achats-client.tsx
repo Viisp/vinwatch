@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { getOrders } from '@/lib/vinted-orders';
-import { vintedOrderUrl, type StoredOrder } from '@/lib/vinted-calculations';
+import { vintedOrderUrl, sortOrders, SORT_OPTIONS, type SortOption, type StoredOrder } from '@/lib/vinted-calculations';
 import { ShoppingBag } from 'lucide-react';
 import SearchComponent from '@/components/ui/animated-glowing-search-bar';
 import { Pagination } from '@/components/ui/pagination';
@@ -18,6 +18,7 @@ export function AchatsClient() {
   const [orders, setOrders] = useState<StoredOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -29,9 +30,9 @@ export function AchatsClient() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return orders;
-    return orders.filter((o) => o.title.toLowerCase().includes(q));
-  }, [orders, search]);
+    const base = q ? orders.filter((o) => o.title.toLowerCase().includes(q)) : orders;
+    return sortOrders(base, sortBy);
+  }, [orders, search, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
@@ -50,7 +51,18 @@ export function AchatsClient() {
           Achats ({filtered.length})
         </h1>
         {orders.length > 0 && (
-          <SearchComponent value={search} onChange={handleSearchChange} placeholder="Rechercher un article…" />
+          <div className="flex items-center gap-2">
+            <SearchComponent value={search} onChange={handleSearchChange} placeholder="Rechercher un article…" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="h-10 bg-[#1a2d42] border border-[#243552] rounded-lg px-3 text-sm text-slate-100 focus:outline-none focus:border-[#00c896] transition-colors"
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
         )}
       </div>
 
