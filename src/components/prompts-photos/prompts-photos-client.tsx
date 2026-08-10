@@ -42,11 +42,15 @@ function resolveText(
   pose?: PromptOption,
   background?: PromptOption
 ): string {
-  let text = mode.text
-    .replaceAll('{item}', item?.value || '{item}')
-    .replaceAll('{background}', background?.value || '{background}');
+  const backgroundValue = background?.value || '{background}';
+  // A pose's own value can reference {background} (e.g. "laid flat on
+  // {background}" vs "hanging, with {background} visible behind it") so the
+  // connecting phrase matches whether the item sits on a surface or in a room.
+  const poseValue = pose ? pose.value.replaceAll('{background}', backgroundValue) : '{pose}';
+
+  let text = mode.text.replaceAll('{item}', item?.value || '{item}').replaceAll('{background}', backgroundValue);
   if (mode.usesPoseAngle) {
-    text = text.replaceAll('{angle}', angle?.value || '{angle}').replaceAll('{pose}', pose?.value || '{pose}');
+    text = text.replaceAll('{angle}', angle?.value || '{angle}').replaceAll('{pose}', poseValue);
   }
   return text;
 }
@@ -110,16 +114,30 @@ export function PromptsPhotosClient() {
   const selectedMode = useMemo(() => availableModes.find((m) => m.id === selectedModeId), [availableModes, selectedModeId]);
   const selectedAngle = useMemo(() => angles.find((a) => a.id === selectedAngleId), [angles, selectedAngleId]);
   const selectedPose = useMemo(() => availablePoses.find((p) => p.id === selectedPoseId), [availablePoses, selectedPoseId]);
-  const selectedBackground = useMemo(() => backgrounds.find((b) => b.id === selectedBackgroundId), [backgrounds, selectedBackgroundId]);
+
+  // A pose "on a surface" only pairs with floor/surface backgrounds, and a
+  // pose "in a room" (cintre/mannequin) only with real-room backgrounds --
+  // otherwise a t-shirt on a hanger could end up "presented on a carpet".
+  const availableBackgrounds = useMemo(() => {
+    if (!selectedMode?.usesPoseAngle || !selectedPose) return backgrounds;
+    return backgrounds.filter((b) => !b.family || b.family === selectedPose.family);
+  }, [backgrounds, selectedMode, selectedPose]);
+
+  const selectedBackground = useMemo(
+    () => availableBackgrounds.find((b) => b.id === selectedBackgroundId),
+    [availableBackgrounds, selectedBackgroundId]
+  );
 
   // If the garment changes and the current mode/pose is no longer valid for
   // it (e.g. switching from Chaussures to T-shirt while "Semelle" was
-  // selected), fall back to the first option that's still available.
+  // selected), fall back to the first option that's still available. Same
+  // for background when the pose's scene family changes.
   useEffect(() => {
     if (!loaded) return;
     if (!selectedMode && availableModes.length > 0) setSelectedModeId(availableModes[0].id);
     if (!selectedPose && availablePoses.length > 0) setSelectedPoseId(availablePoses[0].id);
-  }, [loaded, selectedMode, selectedPose, availableModes, availablePoses]);
+    if (!selectedBackground && availableBackgrounds.length > 0) setSelectedBackgroundId(availableBackgrounds[0].id);
+  }, [loaded, selectedMode, selectedPose, selectedBackground, availableModes, availablePoses, availableBackgrounds]);
 
   const resultText = useMemo(() => {
     if (!selectedMode) return '';
@@ -353,13 +371,16 @@ function PickerSelect({
     <Select value={value} onValueChange={(v) => onChange(v ?? '')}>
       <SelectTrigger className="w-full bg-[#0d1b2a] border-[#243552] text-slate-100">
         <SelectValue placeholder="Choisir…">
-          {(v: string | null) => options.find((o) => o.id === v)?.label || 'Choisir…'}
+          {(v: string | null) => {
+            const o = options.find((oo) => oo.id === v);
+            return o ? `${o.emoji ?? ''} ${o.label || 'Sans nom'}`.trim() : 'Choisir…';
+          }}
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="bg-[#0d1b2a] border border-[#243552] text-slate-100">
         {options.map((o) => (
           <SelectItem key={o.id} value={o.id}>
-            {o.label || 'Sans nom'}
+            {o.emoji} {o.label || 'Sans nom'}
           </SelectItem>
         ))}
       </SelectContent>
@@ -410,10 +431,16 @@ function ListManager({
           <div key={o.id} className="space-y-1 rounded-lg border border-[#243552] p-2">
             <div className="flex items-center gap-1.5">
               <input
+                value={o.emoji ?? ''}
+                onChange={(e) => update(o.id, { emoji: e.target.value })}
+                placeholder="✨"
+                className="w-10 shrink-0 rounded-lg bg-[#0d1b2a] border border-[#243552] px-1 py-1.5 text-center text-xs text-slate-100 outline-none focus:border-[#00c896]/60"
+              />
+              <input
                 value={o.label}
                 onChange={(e) => update(o.id, { label: e.target.value })}
                 placeholder={labelPlaceholder}
-                className="w-28 shrink-0 rounded-lg bg-[#0d1b2a] border border-[#243552] px-2 py-1.5 text-xs text-slate-100 outline-none focus:border-[#00c896]/60"
+                className="w-24 shrink-0 rounded-lg bg-[#0d1b2a] border border-[#243552] px-2 py-1.5 text-xs text-slate-100 outline-none focus:border-[#00c896]/60"
               />
               <input
                 value={o.value}
