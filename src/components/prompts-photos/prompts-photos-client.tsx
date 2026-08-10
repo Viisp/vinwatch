@@ -12,7 +12,18 @@ import {
   DEFAULT_BACKGROUNDS,
   type PromptMode,
   type PromptOption,
+  type ClothingKind,
 } from '@/data/photo-prompts';
+
+const CLOTHING_KINDS: { id: ClothingKind; label: string }[] = [
+  { id: 'haut', label: 'Haut' },
+  { id: 'bas', label: 'Bas' },
+  { id: 'chaussure', label: 'Chaussure' },
+];
+
+function isAvailableFor(restrictTo: ClothingKind[] | undefined, kind: ClothingKind | undefined): boolean {
+  return !restrictTo || restrictTo.length === 0 || !kind || restrictTo.includes(kind);
+}
 import { getPhotoPromptSettings, savePhotoPromptSettings } from '@/lib/photo-prompts';
 import { Camera, Plus, Trash2, Copy, Check } from 'lucide-react';
 
@@ -82,11 +93,33 @@ export function PromptsPhotosClient() {
     });
   }, []);
 
-  const selectedMode = useMemo(() => modes.find((m) => m.id === selectedModeId), [modes, selectedModeId]);
   const selectedClothing = useMemo(() => clothingTypes.find((c) => c.id === selectedClothingId), [clothingTypes, selectedClothingId]);
+
+  // Options that don't make physical sense for the current garment (a
+  // mannequin bust for a pair of shorts, a sole close-up for a t-shirt)
+  // are hidden rather than just left selectable and wrong.
+  const availableModes = useMemo(
+    () => modes.filter((m) => isAvailableFor(m.restrictTo, selectedClothing?.kind)),
+    [modes, selectedClothing]
+  );
+  const availablePoses = useMemo(
+    () => poses.filter((p) => isAvailableFor(p.restrictTo, selectedClothing?.kind)),
+    [poses, selectedClothing]
+  );
+
+  const selectedMode = useMemo(() => availableModes.find((m) => m.id === selectedModeId), [availableModes, selectedModeId]);
   const selectedAngle = useMemo(() => angles.find((a) => a.id === selectedAngleId), [angles, selectedAngleId]);
-  const selectedPose = useMemo(() => poses.find((p) => p.id === selectedPoseId), [poses, selectedPoseId]);
+  const selectedPose = useMemo(() => availablePoses.find((p) => p.id === selectedPoseId), [availablePoses, selectedPoseId]);
   const selectedBackground = useMemo(() => backgrounds.find((b) => b.id === selectedBackgroundId), [backgrounds, selectedBackgroundId]);
+
+  // If the garment changes and the current mode/pose is no longer valid for
+  // it (e.g. switching from Chaussures to T-shirt while "Semelle" was
+  // selected), fall back to the first option that's still available.
+  useEffect(() => {
+    if (!loaded) return;
+    if (!selectedMode && availableModes.length > 0) setSelectedModeId(availableModes[0].id);
+    if (!selectedPose && availablePoses.length > 0) setSelectedPoseId(availablePoses[0].id);
+  }, [loaded, selectedMode, selectedPose, availableModes, availablePoses]);
 
   const resultText = useMemo(() => {
     if (!selectedMode) return '';
@@ -198,10 +231,15 @@ export function PromptsPhotosClient() {
           <Field label="Type de photo">
             <Select value={selectedModeId} onValueChange={(v) => setSelectedModeId(v ?? '')}>
               <SelectTrigger className="w-full bg-[#0d1b2a] border-[#243552] text-slate-100">
-                <SelectValue placeholder="Choisir…" />
+                <SelectValue placeholder="Choisir…">
+                  {(v: string | null) => {
+                    const m = availableModes.find((mm) => mm.id === v);
+                    return m ? `${m.emoji} ${m.name || 'Sans nom'}` : 'Choisir…';
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="bg-[#0d1b2a] border border-[#243552] text-slate-100">
-                {modes.map((m) => (
+                {availableModes.map((m) => (
                   <SelectItem key={m.id} value={m.id}>
                     {m.emoji} {m.name || 'Sans nom'}
                   </SelectItem>
@@ -212,7 +250,7 @@ export function PromptsPhotosClient() {
           {selectedMode?.usesPoseAngle && (
             <>
               <Field label="Pose">
-                <PickerSelect options={poses} value={selectedPoseId} onChange={setSelectedPoseId} />
+                <PickerSelect options={availablePoses} value={selectedPoseId} onChange={setSelectedPoseId} />
               </Field>
               <Field label="Angle">
                 <PickerSelect options={angles} value={selectedAngleId} onChange={setSelectedAngleId} />
@@ -257,8 +295,8 @@ export function PromptsPhotosClient() {
 
       {managing && (
         <div className="space-y-4 mb-6">
-          <ListManager title="Vêtements" options={clothingTypes} onChange={setClothingTypes} onAdd={() => setClothingTypes((p) => [...p, newOption()])} onRemove={removeClothingType} labelPlaceholder="ex: T-shirt" valuePlaceholder="ex: a t-shirt, ..." />
-          <ListManager title="Poses" options={poses} onChange={setPoses} onAdd={() => setPoses((p) => [...p, newOption()])} onRemove={removePose} labelPlaceholder="ex: Sur cintre" valuePlaceholder="ex: hanging neatly on a wooden hanger" />
+          <ListManager title="Vêtements" options={clothingTypes} onChange={setClothingTypes} onAdd={() => setClothingTypes((p) => [...p, newOption()])} onRemove={removeClothingType} labelPlaceholder="ex: T-shirt" valuePlaceholder="ex: a t-shirt, ..." showKind />
+          <ListManager title="Poses" options={poses} onChange={setPoses} onAdd={() => setPoses((p) => [...p, newOption()])} onRemove={removePose} labelPlaceholder="ex: Sur cintre" valuePlaceholder="ex: hanging neatly on a wooden hanger" showRestrictTo />
           <ListManager title="Angles" options={angles} onChange={setAngles} onAdd={() => setAngles((p) => [...p, newOption()])} onRemove={removeAngle} labelPlaceholder="ex: Face" valuePlaceholder="ex: front view" />
           <ListManager title="Fonds" options={backgrounds} onChange={setBackgrounds} onAdd={() => setBackgrounds((p) => [...p, newOption()])} onRemove={removeBackground} labelPlaceholder="ex: Bois" valuePlaceholder="ex: a wooden floor" />
           <ModeManager modes={modes} onChange={setModes} onAdd={() => setModes((p) => [...p, newMode()])} onRemove={removeMode} />
@@ -314,7 +352,9 @@ function PickerSelect({
   return (
     <Select value={value} onValueChange={(v) => onChange(v ?? '')}>
       <SelectTrigger className="w-full bg-[#0d1b2a] border-[#243552] text-slate-100">
-        <SelectValue placeholder="Choisir…" />
+        <SelectValue placeholder="Choisir…">
+          {(v: string | null) => options.find((o) => o.id === v)?.label || 'Choisir…'}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent className="bg-[#0d1b2a] border border-[#243552] text-slate-100">
         {options.map((o) => (
@@ -335,6 +375,8 @@ function ListManager({
   onRemove,
   labelPlaceholder,
   valuePlaceholder,
+  showKind,
+  showRestrictTo,
 }: {
   title: string;
   options: PromptOption[];
@@ -343,9 +385,19 @@ function ListManager({
   onRemove: (id: string) => void;
   labelPlaceholder: string;
   valuePlaceholder: string;
+  // Vêtements: tag each entry with its silhouette family.
+  showKind?: boolean;
+  // Poses: restrict which silhouette families can use this pose.
+  showRestrictTo?: boolean;
 }) {
   function update(id: string, patch: Partial<PromptOption>) {
     onChange(options.map((o) => (o.id === id ? { ...o, ...patch } : o)));
+  }
+
+  function toggleRestrict(o: PromptOption, k: ClothingKind) {
+    const current = o.restrictTo && o.restrictTo.length > 0 ? o.restrictTo : CLOTHING_KINDS.map((c) => c.id);
+    const next = current.includes(k) ? current.filter((x) => x !== k) : [...current, k];
+    update(o.id, { restrictTo: next });
   }
 
   return (
@@ -355,22 +407,52 @@ function ListManager({
       </CardHeader>
       <CardContent className="space-y-2">
         {options.map((o) => (
-          <div key={o.id} className="flex items-center gap-1.5">
-            <input
-              value={o.label}
-              onChange={(e) => update(o.id, { label: e.target.value })}
-              placeholder={labelPlaceholder}
-              className="w-28 shrink-0 rounded-lg bg-[#0d1b2a] border border-[#243552] px-2 py-1.5 text-xs text-slate-100 outline-none focus:border-[#00c896]/60"
-            />
-            <input
-              value={o.value}
-              onChange={(e) => update(o.id, { value: e.target.value })}
-              placeholder={valuePlaceholder}
-              className="flex-1 rounded-lg bg-[#0d1b2a] border border-[#243552] px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-[#00c896]/60"
-            />
-            <button type="button" onClick={() => onRemove(o.id)} aria-label="Supprimer" className="shrink-0 rounded-lg p-1.5 text-red-400 hover:bg-[#0d1b2a]">
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+          <div key={o.id} className="space-y-1 rounded-lg border border-[#243552] p-2">
+            <div className="flex items-center gap-1.5">
+              <input
+                value={o.label}
+                onChange={(e) => update(o.id, { label: e.target.value })}
+                placeholder={labelPlaceholder}
+                className="w-28 shrink-0 rounded-lg bg-[#0d1b2a] border border-[#243552] px-2 py-1.5 text-xs text-slate-100 outline-none focus:border-[#00c896]/60"
+              />
+              <input
+                value={o.value}
+                onChange={(e) => update(o.id, { value: e.target.value })}
+                placeholder={valuePlaceholder}
+                className="flex-1 rounded-lg bg-[#0d1b2a] border border-[#243552] px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-[#00c896]/60"
+              />
+              <button type="button" onClick={() => onRemove(o.id)} aria-label="Supprimer" className="shrink-0 rounded-lg p-1.5 text-red-400 hover:bg-[#0d1b2a]">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            {showKind && (
+              <select
+                value={o.kind ?? 'haut'}
+                onChange={(e) => update(o.id, { kind: e.target.value as ClothingKind })}
+                className="rounded-lg bg-[#0d1b2a] border border-[#243552] px-2 py-1 text-[11px] text-slate-300 outline-none focus:border-[#00c896]/60"
+              >
+                {CLOTHING_KINDS.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            {showRestrictTo && (
+              <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                <span>Pour :</span>
+                {CLOTHING_KINDS.map((k) => (
+                  <label key={k.id} className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={!o.restrictTo || o.restrictTo.length === 0 || o.restrictTo.includes(k.id)}
+                      onChange={() => toggleRestrict(o, k.id)}
+                    />
+                    {k.label}
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
         ))}
         <Button variant="outline" size="sm" onClick={onAdd}>
@@ -394,6 +476,12 @@ function ModeManager({
 }) {
   function update(id: string, patch: Partial<PromptMode>) {
     onChange(modes.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+  }
+
+  function toggleRestrict(m: PromptMode, k: ClothingKind) {
+    const current = m.restrictTo && m.restrictTo.length > 0 ? m.restrictTo : CLOTHING_KINDS.map((c) => c.id);
+    const next = current.includes(k) ? current.filter((x) => x !== k) : [...current, k];
+    update(m.id, { restrictTo: next });
   }
 
   return (
@@ -423,6 +511,19 @@ function ModeManager({
               <button type="button" onClick={() => onRemove(m.id)} aria-label="Supprimer" className="shrink-0 rounded-lg p-1.5 text-red-400 hover:bg-[#1a2d42]">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
+            </div>
+            <div className="flex items-center gap-2 text-[11px] text-slate-400">
+              <span>Pour :</span>
+              {CLOTHING_KINDS.map((k) => (
+                <label key={k.id} className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={!m.restrictTo || m.restrictTo.length === 0 || m.restrictTo.includes(k.id)}
+                    onChange={() => toggleRestrict(m, k.id)}
+                  />
+                  {k.label}
+                </label>
+              ))}
             </div>
             <textarea
               value={m.text}
