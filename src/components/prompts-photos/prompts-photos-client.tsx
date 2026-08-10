@@ -86,6 +86,7 @@ export function PromptsPhotosClient() {
   const [copied, setCopied] = useState(false);
   const [managing, setManaging] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [pendingReset, setPendingReset] = useState(false);
 
   useEffect(() => {
     getPhotoPromptSettings().then((saved) => {
@@ -189,6 +190,38 @@ export function PromptsPhotosClient() {
     }
   }
 
+  // Backfilling only fills in fields a saved entry never had -- it can't
+  // pick up a rewritten default value/text for a field that's already
+  // present (e.g. an improved pose description), since that would risk
+  // clobbering a genuine user edit. This is the explicit escape hatch:
+  // wipe everything back to the current built-in defaults.
+  function requestReset() {
+    setPendingReset(true);
+  }
+
+  async function confirmReset() {
+    setPendingReset(false);
+    setModes(DEFAULT_PROMPT_MODES);
+    setClothingTypes(DEFAULT_CLOTHING_TYPES);
+    setAngles(DEFAULT_ANGLES);
+    setPoses(DEFAULT_POSES);
+    setBackgrounds(DEFAULT_BACKGROUNDS);
+    setSaving(true);
+    try {
+      await savePhotoPromptSettings({
+        modes: DEFAULT_PROMPT_MODES,
+        clothingTypes: DEFAULT_CLOTHING_TYPES,
+        angles: DEFAULT_ANGLES,
+        poses: DEFAULT_POSES,
+        backgrounds: DEFAULT_BACKGROUNDS,
+      });
+    } catch (err) {
+      console.error('[PromptsPhotosClient] reset failed:', err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function removeClothingType(id: string) {
     setPendingDelete({ kind: 'clothing', id, label: clothingTypes.find((c) => c.id === id)?.label || 'ce vêtement' });
   }
@@ -287,7 +320,7 @@ export function PromptsPhotosClient() {
             </>
           )}
           <Field label="Fond">
-            <PickerSelect options={backgrounds} value={selectedBackgroundId} onChange={setSelectedBackgroundId} />
+            <PickerSelect options={availableBackgrounds} value={selectedBackgroundId} onChange={setSelectedBackgroundId} />
           </Field>
         </CardContent>
       </Card>
@@ -336,6 +369,9 @@ export function PromptsPhotosClient() {
         <Button size="sm" onClick={handleSave} disabled={saving}>
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
+        <Button size="sm" variant="outline" onClick={requestReset} disabled={saving}>
+          Réinitialiser
+        </Button>
       </div>
 
       <Dialog open={!!pendingDelete} onOpenChange={(open) => { if (!open) setPendingDelete(null); }}>
@@ -352,6 +388,26 @@ export function PromptsPhotosClient() {
             </Button>
             <Button variant="destructive" onClick={confirmDelete}>
               Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pendingReset} onOpenChange={(open) => { if (!open) setPendingReset(false); }}>
+        <DialogContent className="sm:max-w-sm bg-[#0d1b2a] border-[#243552]">
+          <DialogHeader>
+            <DialogTitle className="text-slate-100">Réinitialiser tous les prompts ?</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Vêtements, poses, angles, fonds et types de photo reviendront tous aux valeurs par défaut. Toute
+              personnalisation sera perdue.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="bg-transparent border-t-0">
+            <Button variant="outline" onClick={() => setPendingReset(false)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={confirmReset}>
+              Réinitialiser
             </Button>
           </DialogFooter>
         </DialogContent>
