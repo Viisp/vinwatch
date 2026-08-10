@@ -57,8 +57,16 @@ export function PromptsPhotosClient() {
     });
   }
 
-  function removeCategory(catId: string) {
-    setCategories((prev) => prev.filter((c) => c.id !== catId));
+  async function removeCategory(catId: string) {
+    const cat = categories.find((c) => c.id === catId);
+    if (!window.confirm(`Supprimer la catégorie "${cat?.name || 'Sans nom'}" et tous ses prompts ?`)) return;
+    const next = categories.filter((c) => c.id !== catId);
+    setCategories(next);
+    try {
+      await savePhotoPromptCategories(next);
+    } catch (err) {
+      console.error('[PromptsPhotosClient] delete category failed:', err);
+    }
   }
 
   function addCategory() {
@@ -81,10 +89,17 @@ export function PromptsPhotosClient() {
     );
   }
 
-  function removePrompt(catId: string, promptId: string) {
-    setCategories((prev) =>
-      prev.map((c) => (c.id === catId ? { ...c, prompts: c.prompts.filter((p) => p.id !== promptId) } : c))
+  async function removePrompt(catId: string, promptId: string) {
+    if (!window.confirm('Supprimer ce prompt ?')) return;
+    const next = categories.map((c) =>
+      c.id === catId ? { ...c, prompts: c.prompts.filter((p) => p.id !== promptId) } : c
     );
+    setCategories(next);
+    try {
+      await savePhotoPromptCategories(next);
+    } catch (err) {
+      console.error('[PromptsPhotosClient] delete prompt failed:', err);
+    }
   }
 
   async function handleSave() {
