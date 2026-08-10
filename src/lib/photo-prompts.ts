@@ -21,7 +21,7 @@ export async function getPhotoPromptSettings(): Promise<PromptSettings | null> {
   const settings = data?.data?.photoPromptSettings;
   // null (not a valid settings object) tells the caller "user has never
   // saved anything yet" so it can fall back to the built-in defaults.
-  return settings && Array.isArray(settings.templates) ? settings : null;
+  return settings && Array.isArray(settings.modes) ? settings : null;
 }
 
 export async function savePhotoPromptSettings(settings: PromptSettings): Promise<void> {
