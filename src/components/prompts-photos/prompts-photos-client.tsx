@@ -24,6 +24,17 @@ const CLOTHING_KINDS: { id: ClothingKind; label: string }[] = [
 function isAvailableFor(restrictTo: ClothingKind[] | undefined, kind: ClothingKind | undefined): boolean {
   return !restrictTo || restrictTo.length === 0 || !kind || restrictTo.includes(kind);
 }
+
+// Settings saved before a field existed (emoji, kind, restrictTo, family...)
+// come back from Supabase without it. Layer each saved entry over its
+// current default (matched by id) so new fields get backfilled without
+// touching anything the user actually edited (label/value/etc. from the
+// saved entry always win) or losing entries/deletions they made.
+function withDefaults<T extends { id: string }>(saved: T[] | undefined, defaults: T[]): T[] {
+  if (!saved) return defaults;
+  const defaultsById = new Map(defaults.map((d) => [d.id, d]));
+  return saved.map((s) => ({ ...defaultsById.get(s.id), ...s }));
+}
 import { getPhotoPromptSettings, savePhotoPromptSettings } from '@/lib/photo-prompts';
 import { Camera, Plus, Trash2, Copy, Check } from 'lucide-react';
 
@@ -78,11 +89,11 @@ export function PromptsPhotosClient() {
 
   useEffect(() => {
     getPhotoPromptSettings().then((saved) => {
-      const m = saved?.modes ?? DEFAULT_PROMPT_MODES;
-      const c = saved?.clothingTypes ?? DEFAULT_CLOTHING_TYPES;
-      const a = saved?.angles ?? DEFAULT_ANGLES;
-      const p = saved?.poses ?? DEFAULT_POSES;
-      const b = saved?.backgrounds ?? DEFAULT_BACKGROUNDS;
+      const m = withDefaults(saved?.modes, DEFAULT_PROMPT_MODES);
+      const c = withDefaults(saved?.clothingTypes, DEFAULT_CLOTHING_TYPES);
+      const a = withDefaults(saved?.angles, DEFAULT_ANGLES);
+      const p = withDefaults(saved?.poses, DEFAULT_POSES);
+      const b = withDefaults(saved?.backgrounds, DEFAULT_BACKGROUNDS);
       setModes(m);
       setClothingTypes(c);
       setAngles(a);
