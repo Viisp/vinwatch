@@ -7,6 +7,7 @@ const EMOJI_CHOICES = ['🟢', '🔵', '🟡', '🟣', '⚫', '⚪', '🔴', '�
 
 export function PromptRow({
   prompt,
+  resolvedText,
   id,
   expanded,
   onToggle,
@@ -14,6 +15,10 @@ export function PromptRow({
   onDelete,
 }: {
   prompt: PhotoPrompt;
+  // The template's text with {item}/{background} placeholders substituted --
+  // what actually gets copied. Falls back to the raw template text when a
+  // placeholder can't be resolved (e.g. no clothing type selected yet).
+  resolvedText?: string;
   id?: string;
   expanded: boolean;
   onToggle: () => void;
@@ -23,7 +28,7 @@ export function PromptRow({
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(prompt.text);
+    await navigator.clipboard.writeText(resolvedText ?? prompt.text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -99,6 +104,10 @@ export function PromptRow({
             rows={6}
             className="w-full resize-none rounded-lg bg-[#1a2d42] border border-[#243552] p-3 text-xs leading-relaxed text-slate-300 outline-none focus:border-[#00c896]/60 focus:ring-1 focus:ring-[#00c896]/40"
           />
+          <p className="text-[11px] text-slate-500">
+            <code className="text-[#00c896]">{'{item}'}</code> et <code className="text-[#00c896]">{'{background}'}</code>{' '}
+            sont remplacés par le vêtement et le fond choisis au-dessus avant la copie.
+          </p>
         </div>
       )}
     </div>

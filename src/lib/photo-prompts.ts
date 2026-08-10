@@ -1,7 +1,7 @@
 import { createClient } from './supabase';
-import type { PromptCategory } from '@/data/photo-prompts';
+import type { PromptSettings } from '@/data/photo-prompts';
 
-export async function getPhotoPromptCategories(): Promise<PromptCategory[] | null> {
+export async function getPhotoPromptSettings(): Promise<PromptSettings | null> {
   const supabase = createClient();
   const {
     data: { user },
@@ -15,17 +15,16 @@ export async function getPhotoPromptCategories(): Promise<PromptCategory[] | nul
     .maybeSingle();
 
   if (error) {
-    console.error('[getPhotoPromptCategories] Supabase query failed:', error.message);
+    console.error('[getPhotoPromptSettings] Supabase query failed:', error.message);
     return null;
   }
-  const categories = data?.data?.photoPromptCategories;
-  // null (not an empty array) tells the caller "user has never saved
-  // anything yet" so it can fall back to the built-in defaults — an empty
-  // array is a valid, deliberate "user deleted everything" state.
-  return Array.isArray(categories) ? categories : null;
+  const settings = data?.data?.photoPromptSettings;
+  // null (not a valid settings object) tells the caller "user has never
+  // saved anything yet" so it can fall back to the built-in defaults.
+  return settings && Array.isArray(settings.templates) ? settings : null;
 }
 
-export async function savePhotoPromptCategories(categories: PromptCategory[]): Promise<void> {
+export async function savePhotoPromptSettings(settings: PromptSettings): Promise<void> {
   const supabase = createClient();
   const {
     data: { user },
@@ -44,7 +43,7 @@ export async function savePhotoPromptCategories(categories: PromptCategory[]): P
   const { error } = await supabase
     .from('user_data')
     .upsert(
-      { user_id: user.id, data: { ...(existing?.data ?? {}), photoPromptCategories: categories } },
+      { user_id: user.id, data: { ...(existing?.data ?? {}), photoPromptSettings: settings } },
       { onConflict: 'user_id' }
     );
 

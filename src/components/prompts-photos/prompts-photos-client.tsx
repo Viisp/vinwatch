@@ -1,43 +1,72 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PromptRow } from './prompt-row';
-import { DEFAULT_PROMPT_CATEGORIES, type PromptCategory, type PhotoPrompt } from '@/data/photo-prompts';
-import { getPhotoPromptCategories, savePhotoPromptCategories } from '@/lib/photo-prompts';
-import { Camera, Plus, Trash2, Pencil, Check } from 'lucide-react';
+import {
+  DEFAULT_PROMPT_TEMPLATES,
+  DEFAULT_CLOTHING_TYPES,
+  DEFAULT_BACKGROUNDS,
+  type PhotoPrompt,
+  type PromptOption,
+} from '@/data/photo-prompts';
+import { getPhotoPromptSettings, savePhotoPromptSettings } from '@/lib/photo-prompts';
+import { Camera, Plus, Trash2 } from 'lucide-react';
 
-function newCategory(): PromptCategory {
-  const id = crypto.randomUUID();
-  return { id, slug: id, name: '', emoji: '✨', prompts: [] };
+function newTemplate(): PhotoPrompt {
+  return { id: crypto.randomUUID(), angle: '', emoji: '✨', text: '' };
 }
 
-function newPrompt(): PhotoPrompt {
-  return { id: crypto.randomUUID(), angle: '', emoji: '🟢', text: '' };
+function newOption(): PromptOption {
+  return { id: crypto.randomUUID(), label: '', value: '' };
 }
 
-const EMOJI_CHOICES = [
-  '👕', '👔', '🩳', '🎽', '🧥', '👖', '👟', '👗', '👘', '🧦', '🧤', '🧣', '🩱', '👙', '🥾', '👞', '👠', '🎩', '🧢', '👒',
-  '✨', '🏷️', '🔖', '🔍', '🟢', '🔵', '🟡', '🟣', '⚫', '⚪', '🔴', '🟠',
-];
+function resolveText(text: string, item?: PromptOption, background?: PromptOption): string {
+  return text
+    .replaceAll('{item}', item?.value || '{item}')
+    .replaceAll('{background}', background?.value || '{background}');
+}
+
+type PendingDelete =
+  | { kind: 'template'; id: string; label: string }
+  | { kind: 'clothing'; id: string; label: string }
+  | { kind: 'background'; id: string; label: string };
 
 export function PromptsPhotosClient() {
-  const [categories, setCategories] = useState<PromptCategory[]>([]);
+  const [templates, setTemplates] = useState<PhotoPrompt[]>([]);
+  const [clothingTypes, setClothingTypes] = useState<PromptOption[]>([]);
+  const [backgrounds, setBackgrounds] = useState<PromptOption[]>([]);
+  const [selectedClothingId, setSelectedClothingId] = useState<string>('');
+  const [selectedBackgroundId, setSelectedBackgroundId] = useState<string>('');
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [editingCatIds, setEditingCatIds] = useState<Set<string>>(new Set());
-  const [pendingDelete, setPendingDelete] = useState<
-    { type: 'category'; catId: string; label: string } | { type: 'prompt'; catId: string; promptId: string; label: string } | null
-  >(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
 
   useEffect(() => {
-    getPhotoPromptCategories().then((saved) => {
-      setCategories(saved ?? DEFAULT_PROMPT_CATEGORIES);
+    getPhotoPromptSettings().then((saved) => {
+      const t = saved?.templates ?? DEFAULT_PROMPT_TEMPLATES;
+      const c = saved?.clothingTypes ?? DEFAULT_CLOTHING_TYPES;
+      const b = saved?.backgrounds ?? DEFAULT_BACKGROUNDS;
+      setTemplates(t);
+      setClothingTypes(c);
+      setBackgrounds(b);
+      setSelectedClothingId(c[0]?.id ?? '');
+      setSelectedBackgroundId(b[0]?.id ?? '');
       setLoaded(true);
     });
   }, []);
+
+  const selectedClothing = useMemo(
+    () => clothingTypes.find((c) => c.id === selectedClothingId),
+    [clothingTypes, selectedClothingId]
+  );
+  const selectedBackground = useMemo(
+    () => backgrounds.find((b) => b.id === selectedBackgroundId),
+    [backgrounds, selectedBackgroundId]
+  );
 
   function toggleExpanded(id: string) {
     setExpandedIds((prev) => {
@@ -48,63 +77,65 @@ export function PromptsPhotosClient() {
     });
   }
 
-  function updateCategory(catId: string, patch: Partial<PromptCategory>) {
-    setCategories((prev) => prev.map((c) => (c.id === catId ? { ...c, ...patch } : c)));
+  function updateTemplate(id: string, patch: Partial<PhotoPrompt>) {
+    setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   }
 
-  function toggleEditingCategory(catId: string) {
-    setEditingCatIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(catId)) next.delete(catId);
-      else next.add(catId);
-      return next;
-    });
+  function addTemplate() {
+    const t = newTemplate();
+    setTemplates((prev) => [...prev, t]);
+    setExpandedIds((prev) => new Set(prev).add(t.id));
   }
 
-  function removeCategory(catId: string) {
-    const cat = categories.find((c) => c.id === catId);
-    setPendingDelete({ type: 'category', catId, label: cat?.name || 'Sans nom' });
+  function removeTemplate(id: string) {
+    const t = templates.find((x) => x.id === id);
+    setPendingDelete({ kind: 'template', id, label: t?.angle || 'ce prompt' });
   }
 
-  function addCategory() {
-    setCategories((prev) => [...prev, newCategory()]);
+  function updateClothingType(id: string, patch: Partial<PromptOption>) {
+    setClothingTypes((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
   }
 
-  function addPrompt(catId: string) {
-    const p = newPrompt();
-    setCategories((prev) => prev.map((c) => (c.id === catId ? { ...c, prompts: [...c.prompts, p] } : c)));
-    setExpandedIds((prev) => new Set(prev).add(p.id));
+  function addClothingType() {
+    setClothingTypes((prev) => [...prev, newOption()]);
   }
 
-  function updatePrompt(catId: string, promptId: string, patch: Partial<PhotoPrompt>) {
-    setCategories((prev) =>
-      prev.map((c) =>
-        c.id === catId
-          ? { ...c, prompts: c.prompts.map((p) => (p.id === promptId ? { ...p, ...patch } : p)) }
-          : c
-      )
-    );
+  function removeClothingType(id: string) {
+    const c = clothingTypes.find((x) => x.id === id);
+    setPendingDelete({ kind: 'clothing', id, label: c?.label || 'ce vêtement' });
   }
 
-  function removePrompt(catId: string, promptId: string) {
-    const prompt = categories.find((c) => c.id === catId)?.prompts.find((p) => p.id === promptId);
-    setPendingDelete({ type: 'prompt', catId, promptId, label: prompt?.angle || 'ce prompt' });
+  function updateBackground(id: string, patch: Partial<PromptOption>) {
+    setBackgrounds((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+  }
+
+  function addBackground() {
+    setBackgrounds((prev) => [...prev, newOption()]);
+  }
+
+  function removeBackground(id: string) {
+    const b = backgrounds.find((x) => x.id === id);
+    setPendingDelete({ kind: 'background', id, label: b?.label || 'ce fond' });
   }
 
   async function confirmDelete() {
     if (!pendingDelete) return;
-    const next =
-      pendingDelete.type === 'category'
-        ? categories.filter((c) => c.id !== pendingDelete.catId)
-        : categories.map((c) =>
-            c.id === pendingDelete.catId
-              ? { ...c, prompts: c.prompts.filter((p) => p.id !== pendingDelete.promptId) }
-              : c
-          );
-    setCategories(next);
+    const nextTemplates = pendingDelete.kind === 'template' ? templates.filter((t) => t.id !== pendingDelete.id) : templates;
+    const nextClothing = pendingDelete.kind === 'clothing' ? clothingTypes.filter((c) => c.id !== pendingDelete.id) : clothingTypes;
+    const nextBackgrounds = pendingDelete.kind === 'background' ? backgrounds.filter((b) => b.id !== pendingDelete.id) : backgrounds;
+
+    setTemplates(nextTemplates);
+    setClothingTypes(nextClothing);
+    setBackgrounds(nextBackgrounds);
+    if (pendingDelete.kind === 'clothing' && selectedClothingId === pendingDelete.id) {
+      setSelectedClothingId(nextClothing[0]?.id ?? '');
+    }
+    if (pendingDelete.kind === 'background' && selectedBackgroundId === pendingDelete.id) {
+      setSelectedBackgroundId(nextBackgrounds[0]?.id ?? '');
+    }
     setPendingDelete(null);
     try {
-      await savePhotoPromptCategories(next);
+      await savePhotoPromptSettings({ templates: nextTemplates, clothingTypes: nextClothing, backgrounds: nextBackgrounds });
     } catch (err) {
       console.error('[PromptsPhotosClient] delete failed:', err);
     }
@@ -113,7 +144,7 @@ export function PromptsPhotosClient() {
   async function handleSave() {
     setSaving(true);
     try {
-      await savePhotoPromptCategories(categories);
+      await savePhotoPromptSettings({ templates, clothingTypes, backgrounds });
       setExpandedIds(new Set());
     } catch (err) {
       console.error('[PromptsPhotosClient] save failed:', err);
@@ -125,108 +156,64 @@ export function PromptsPhotosClient() {
   if (!loaded) return null;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-10 sm:px-6 lg:px-8 pt-8">
+    <div className="mx-auto max-w-3xl px-4 pb-10 sm:px-6 lg:px-8 pt-8">
       <h1 className="text-2xl font-bold text-slate-100 mb-2 flex items-center gap-2">
         <Camera className="w-5 h-5 text-[#00c896]" />
         Prompts photos
       </h1>
       <p className="text-sm text-slate-400 mb-6">
-        Prompts prêts à copier pour générer des photos d&apos;annonces Vinted premium. Ajoute, édite ou supprime tes
-        propres catégories et prompts librement.
+        Choisis un vêtement et un fond, puis copie l&apos;angle qu&apos;il te faut. Un seul jeu de prompts pour tous
+        les vêtements — ajoute, édite ou supprime librement.
       </p>
 
-      {/* Quick nav */}
-      <div className="grid grid-cols-2 gap-2 mb-8">
-        {categories.map((c) => (
-          <a
-            key={c.id}
-            href={`#cat-${c.id}`}
-            className="flex items-center gap-1.5 rounded-lg border border-[#243552] bg-[#1a2d42] px-3 py-2 text-sm text-slate-200 hover:border-[#00c896]/60 hover:text-[#00c896] transition-colors"
-          >
-            <span>{c.emoji}</span> {c.name || 'Sans nom'}
-          </a>
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <OptionPicker
+          title="Vêtement"
+          options={clothingTypes}
+          selectedId={selectedClothingId}
+          onSelect={setSelectedClothingId}
+          onChange={updateClothingType}
+          onAdd={addClothingType}
+          onRemove={removeClothingType}
+          labelPlaceholder="ex: T-shirt"
+          valuePlaceholder="ex: a t-shirt laid perfectly flat"
+        />
+        <OptionPicker
+          title="Fond"
+          options={backgrounds}
+          selectedId={selectedBackgroundId}
+          onSelect={setSelectedBackgroundId}
+          onChange={updateBackground}
+          onAdd={addBackground}
+          onRemove={removeBackground}
+          labelPlaceholder="ex: Bois"
+          valuePlaceholder="ex: a natural wooden floor"
+        />
       </div>
 
-      <div className="columns-1 md:columns-2 gap-4">
-        {categories.map((c) => (
-          <Card
-            key={c.id}
-            id={`cat-${c.id}`}
-            className="bg-[#1a2d42]/80 border-[#243552] scroll-mt-20 mb-4 break-inside-avoid"
-          >
-            <CardHeader>
-              {editingCatIds.has(c.id) ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={c.emoji}
-                      onChange={(e) => updateCategory(c.id, { emoji: e.target.value })}
-                      className="w-12 rounded-lg bg-[#0d1b2a] border border-[#243552] px-2 py-2 text-sm text-center text-slate-100 outline-none focus:border-[#00c896]/60 focus:ring-1 focus:ring-[#00c896]/40"
-                    />
-                    <input
-                      value={c.name}
-                      onChange={(e) => updateCategory(c.id, { name: e.target.value })}
-                      placeholder="Nom de la catégorie"
-                      className="flex-1 rounded-lg bg-[#0d1b2a] border border-[#243552] px-3 py-2 text-sm text-slate-100 font-semibold outline-none focus:border-[#00c896]/60 focus:ring-1 focus:ring-[#00c896]/40"
-                    />
-                    <Button variant="ghost" size="icon-sm" onClick={() => toggleEditingCategory(c.id)} aria-label="Valider">
-                      <Check className="w-4 h-4 text-[#00c896]" />
-                    </Button>
-                    <Button variant="ghost" size="icon-sm" onClick={() => removeCategory(c.id)} aria-label="Supprimer la catégorie">
-                      <Trash2 className="w-4 h-4 text-red-400" />
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {EMOJI_CHOICES.map((emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => updateCategory(c.id, { emoji })}
-                        className={`rounded-md p-1.5 text-base hover:bg-[#0d1b2a] ${c.emoji === emoji ? 'bg-[#0d1b2a] ring-1 ring-[#00c896]/60' : ''}`}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="flex-1 text-base font-semibold text-slate-100">
-                    {c.emoji} {c.name || 'Sans nom'}
-                  </span>
-                  <Button variant="ghost" size="icon-sm" onClick={() => toggleEditingCategory(c.id)} aria-label="Modifier">
-                    <Pencil className="w-4 h-4 text-slate-400" />
-                  </Button>
-                  <Button variant="ghost" size="icon-sm" onClick={() => removeCategory(c.id)} aria-label="Supprimer la catégorie">
-                    <Trash2 className="w-4 h-4 text-red-400" />
-                  </Button>
-                </div>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {c.prompts.map((p) => (
-                <PromptRow
-                  key={p.id}
-                  prompt={p}
-                  expanded={expandedIds.has(p.id)}
-                  onToggle={() => toggleExpanded(p.id)}
-                  onChange={(patch) => updatePrompt(c.id, p.id, patch)}
-                  onDelete={() => removePrompt(c.id, p.id)}
-                />
-              ))}
-              <Button variant="outline" size="sm" onClick={() => addPrompt(c.id)}>
-                <Plus className="w-3.5 h-3.5" /> Ajouter un prompt
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Card className="bg-[#1a2d42]/80 border-[#243552]">
+        <CardHeader>
+          <span className="text-base font-semibold text-slate-100">Prompts</span>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {templates.map((t) => (
+            <PromptRow
+              key={t.id}
+              prompt={t}
+              resolvedText={resolveText(t.text, selectedClothing, selectedBackground)}
+              expanded={expandedIds.has(t.id)}
+              onToggle={() => toggleExpanded(t.id)}
+              onChange={(patch) => updateTemplate(t.id, patch)}
+              onDelete={() => removeTemplate(t.id)}
+            />
+          ))}
+          <Button variant="outline" size="sm" onClick={addTemplate}>
+            <Plus className="w-3.5 h-3.5" /> Ajouter un prompt
+          </Button>
+        </CardContent>
+      </Card>
 
       <div className="flex items-center justify-center gap-3 mt-6 pt-6 border-t border-[#243552]">
-        <Button variant="outline" size="sm" onClick={addCategory}>
-          <Plus className="w-3.5 h-3.5" /> Ajouter une catégorie
-        </Button>
         <Button size="sm" onClick={handleSave} disabled={saving}>
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
@@ -235,13 +222,9 @@ export function PromptsPhotosClient() {
       <Dialog open={!!pendingDelete} onOpenChange={(open) => { if (!open) setPendingDelete(null); }}>
         <DialogContent className="sm:max-w-sm bg-[#0d1b2a] border-[#243552]">
           <DialogHeader>
-            <DialogTitle className="text-slate-100">
-              {pendingDelete?.type === 'category' ? 'Supprimer la catégorie ?' : 'Supprimer le prompt ?'}
-            </DialogTitle>
+            <DialogTitle className="text-slate-100">Supprimer ?</DialogTitle>
             <DialogDescription className="text-slate-400">
-              {pendingDelete?.type === 'category'
-                ? `"${pendingDelete.label}" et tous ses prompts seront définitivement supprimés.`
-                : `"${pendingDelete?.label}" sera définitivement supprimé.`}
+              &quot;{pendingDelete?.label}&quot; sera définitivement supprimé.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="bg-transparent border-t-0">
@@ -255,5 +238,91 @@ export function PromptsPhotosClient() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function OptionPicker({
+  title,
+  options,
+  selectedId,
+  onSelect,
+  onChange,
+  onAdd,
+  onRemove,
+  labelPlaceholder,
+  valuePlaceholder,
+}: {
+  title: string;
+  options: PromptOption[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  onChange: (id: string, patch: Partial<PromptOption>) => void;
+  onAdd: () => void;
+  onRemove: (id: string) => void;
+  labelPlaceholder: string;
+  valuePlaceholder: string;
+}) {
+  const [managing, setManaging] = useState(false);
+
+  return (
+    <Card className="bg-[#1a2d42]/80 border-[#243552]">
+      <CardHeader className="pb-2">
+        <span className="text-sm font-semibold text-slate-100">{title}</span>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Select value={selectedId} onValueChange={(value) => onSelect(value ?? '')}>
+          <SelectTrigger className="w-full bg-[#0d1b2a] border-[#243552] text-slate-100">
+            <SelectValue placeholder="Choisir…" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#0d1b2a] border border-[#243552] text-slate-100">
+            {options.map((o) => (
+              <SelectItem key={o.id} value={o.id}>
+                {o.label || 'Sans nom'}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <button
+          type="button"
+          onClick={() => setManaging((v) => !v)}
+          className="text-xs text-slate-400 hover:text-[#00c896]"
+        >
+          {managing ? 'Fermer la liste' : 'Gérer la liste'}
+        </button>
+
+        {managing && (
+          <div className="space-y-2 pt-1">
+            {options.map((o) => (
+              <div key={o.id} className="flex items-center gap-1.5">
+                <input
+                  value={o.label}
+                  onChange={(e) => onChange(o.id, { label: e.target.value })}
+                  placeholder={labelPlaceholder}
+                  className="w-24 shrink-0 rounded-lg bg-[#0d1b2a] border border-[#243552] px-2 py-1.5 text-xs text-slate-100 outline-none focus:border-[#00c896]/60"
+                />
+                <input
+                  value={o.value}
+                  onChange={(e) => onChange(o.id, { value: e.target.value })}
+                  placeholder={valuePlaceholder}
+                  className="flex-1 rounded-lg bg-[#0d1b2a] border border-[#243552] px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-[#00c896]/60"
+                />
+                <button
+                  type="button"
+                  onClick={() => onRemove(o.id)}
+                  aria-label="Supprimer"
+                  className="shrink-0 rounded-lg p-1.5 text-red-400 hover:bg-[#0d1b2a]"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={onAdd}>
+              <Plus className="w-3.5 h-3.5" /> Ajouter
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
