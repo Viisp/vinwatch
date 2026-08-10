@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { PromptRow } from './prompt-row';
 import { DEFAULT_PROMPT_CATEGORIES, type PromptCategory, type PhotoPrompt } from '@/data/photo-prompts';
 import { getPhotoPromptCategories, savePhotoPromptCategories } from '@/lib/photo-prompts';
@@ -27,6 +28,9 @@ export function PromptsPhotosClient() {
   const [saving, setSaving] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [editingCatIds, setEditingCatIds] = useState<Set<string>>(new Set());
+  const [pendingDelete, setPendingDelete] = useState<
+    { type: 'category'; catId: string; label: string } | { type: 'prompt'; catId: string; promptId: string; label: string } | null
+  >(null);
 
   useEffect(() => {
     getPhotoPromptCategories().then((saved) => {
@@ -57,16 +61,9 @@ export function PromptsPhotosClient() {
     });
   }
 
-  async function removeCategory(catId: string) {
+  function removeCategory(catId: string) {
     const cat = categories.find((c) => c.id === catId);
-    if (!window.confirm(`Supprimer la catégorie "${cat?.name || 'Sans nom'}" et tous ses prompts ?`)) return;
-    const next = categories.filter((c) => c.id !== catId);
-    setCategories(next);
-    try {
-      await savePhotoPromptCategories(next);
-    } catch (err) {
-      console.error('[PromptsPhotosClient] delete category failed:', err);
-    }
+    setPendingDelete({ type: 'category', catId, label: cat?.name || 'Sans nom' });
   }
 
   function addCategory() {
@@ -89,16 +86,27 @@ export function PromptsPhotosClient() {
     );
   }
 
-  async function removePrompt(catId: string, promptId: string) {
-    if (!window.confirm('Supprimer ce prompt ?')) return;
-    const next = categories.map((c) =>
-      c.id === catId ? { ...c, prompts: c.prompts.filter((p) => p.id !== promptId) } : c
-    );
+  function removePrompt(catId: string, promptId: string) {
+    const prompt = categories.find((c) => c.id === catId)?.prompts.find((p) => p.id === promptId);
+    setPendingDelete({ type: 'prompt', catId, promptId, label: prompt?.angle || 'ce prompt' });
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    const next =
+      pendingDelete.type === 'category'
+        ? categories.filter((c) => c.id !== pendingDelete.catId)
+        : categories.map((c) =>
+            c.id === pendingDelete.catId
+              ? { ...c, prompts: c.prompts.filter((p) => p.id !== pendingDelete.promptId) }
+              : c
+          );
     setCategories(next);
+    setPendingDelete(null);
     try {
       await savePhotoPromptCategories(next);
     } catch (err) {
-      console.error('[PromptsPhotosClient] delete prompt failed:', err);
+      console.error('[PromptsPhotosClient] delete failed:', err);
     }
   }
 
@@ -223,6 +231,29 @@ export function PromptsPhotosClient() {
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
       </div>
+
+      <Dialog open={!!pendingDelete} onOpenChange={(open) => { if (!open) setPendingDelete(null); }}>
+        <DialogContent className="sm:max-w-sm bg-[#0d1b2a] border-[#243552]">
+          <DialogHeader>
+            <DialogTitle className="text-slate-100">
+              {pendingDelete?.type === 'category' ? 'Supprimer la catégorie ?' : 'Supprimer le prompt ?'}
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {pendingDelete?.type === 'category'
+                ? `"${pendingDelete.label}" et tous ses prompts seront définitivement supprimés.`
+                : `"${pendingDelete?.label}" sera définitivement supprimé.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="bg-transparent border-t-0">
+            <Button variant="outline" onClick={() => setPendingDelete(null)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
