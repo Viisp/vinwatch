@@ -92,6 +92,7 @@ export const DEFAULT_BACKGROUNDS: PromptOption[] = [
   { id: 'chambre', label: 'Chambre', emoji: '🛏️', family: 'piece', value: 'a cozy bedroom with soft natural light' },
   { id: 'salon', label: 'Salon', emoji: '🛋️', family: 'piece', value: 'a stylish minimalist living room' },
   { id: 'dressing', label: 'Dressing', emoji: '🚪', family: 'piece', value: 'a walk-in closet with soft ambient lighting' },
+  { id: 'studio-blanc', label: 'Studio blanc', emoji: '⬜', family: 'piece', value: 'a seamless plain white studio backdrop' },
 ];
 
 export const DEFAULT_PROMPT_MODES: PromptMode[] = [

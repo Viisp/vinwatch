@@ -5,8 +5,8 @@ import { LayoutDashboard, TrendingUp, ShoppingBag, Camera } from 'lucide-react';
 
 const links = [
   { href: '/',               label: 'Dashboard',      icon: LayoutDashboard },
-  { href: '/ventes',         label: 'Ventes',          icon: TrendingUp },
   { href: '/achats',         label: 'Achats',          icon: ShoppingBag },
+  { href: '/ventes',         label: 'Ventes',          icon: TrendingUp },
   { href: '/prompts-photos', label: 'Prompts',  icon: Camera },
 ];
 

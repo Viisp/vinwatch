@@ -10,8 +10,8 @@ import { ExpandingNav } from '@/components/layout/expanding-nav';
 
 const links = [
   { href: '/', label: 'Dashboard' },
-  { href: '/ventes', label: 'Ventes' },
   { href: '/achats', label: 'Achats' },
+  { href: '/ventes', label: 'Ventes' },
   { href: '/prompts-photos', label: 'Prompts' },
 ];
 

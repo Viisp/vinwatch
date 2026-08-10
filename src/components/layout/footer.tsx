@@ -3,8 +3,8 @@ import Image from 'next/image';
 
 const navLinks = [
   { title: 'Dashboard', href: '/' },
-  { title: 'Ventes', href: '/ventes' },
   { title: 'Achats', href: '/achats' },
+  { title: 'Ventes', href: '/ventes' },
   { title: 'Prompts', href: '/prompts-photos' },
 ];
 
