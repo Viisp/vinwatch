@@ -90,4 +90,16 @@ describe('matchOrderMargins', () => {
     expect(matchedPurchaseIds).toEqual(['a1']);
     expect(matches.filter((m) => m.purchase === null)).toHaveLength(1);
   });
+
+  it('reports an excluded sale as unmatched even if a purchase title would otherwise match', () => {
+    const orders = [
+      order({ id: 's1', orderType: 'sold', title: 'T-shirt Polo Ralph Lauren rouge', priceAmount: '10.99' }),
+      order({ id: 'a1', orderType: 'purchased', title: 'Ralph Lauren', priceAmount: '10.23' }),
+    ];
+
+    const [match] = matchOrderMargins(orders, new Set(['s1']));
+
+    expect(match.purchase).toBeNull();
+    expect(match.margin).toBeNull();
+  });
 });

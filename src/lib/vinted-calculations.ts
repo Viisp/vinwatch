@@ -69,12 +69,18 @@ function normalizeTitle(title: string): string {
 // tradeoff as the Sheet-side version, just also usable on the site. Each
 // purchase is only ever matched to one sale, so a cheap item bought twice
 // doesn't get double-counted as the cost basis for two different sales.
-export function matchOrderMargins(orders: StoredOrder[]): OrderMarginMatch[] {
+//
+// `excludedSaleIds` lets a user override a wrong auto-match (e.g. an item
+// actually bought off-Vinted that coincidentally shares title words with an
+// unrelated Vinted purchase) -- those sales are always reported unmatched.
+export function matchOrderMargins(orders: StoredOrder[], excludedSaleIds: ReadonlySet<string> = new Set()): OrderMarginMatch[] {
   const sales = sortOrders(orders.filter((o) => o.orderType === 'sold'), 'date-desc');
   const purchases = orders.filter((o) => o.orderType === 'purchased');
   const usedPurchaseIds = new Set<string>();
 
   return sales.map((sale) => {
+    if (excludedSaleIds.has(sale.id)) return { sale, purchase: null, margin: null };
+
     const saleTitle = normalizeTitle(sale.title);
     const purchase = purchases.find((p) => {
       if (usedPurchaseIds.has(p.id)) return false;
