@@ -2,9 +2,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
-import { getOrders } from '@/lib/vinted-orders';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { getOrders, deleteOrder } from '@/lib/vinted-orders';
 import { vintedOrderUrl, sortOrders, SORT_OPTIONS, type SortOption, type StoredOrder } from '@/lib/vinted-calculations';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Trash2 } from 'lucide-react';
 import SearchComponent from '@/components/ui/animated-glowing-search-bar';
 import { Pagination } from '@/components/ui/pagination';
 
@@ -20,6 +22,7 @@ export function AchatsClient() {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [page, setPage] = useState(1);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     getOrders('purchased').then((data) => {
@@ -27,6 +30,18 @@ export function AchatsClient() {
       setLoading(false);
     });
   }, []);
+
+  async function confirmDelete() {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
+    setOrders((prev) => prev.filter((o) => o.id !== id));
+    try {
+      await deleteOrder(id);
+    } catch (err) {
+      console.error('[AchatsClient] delete failed:', err);
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -106,6 +121,18 @@ export function AchatsClient() {
                     </p>
                   </div>
                   <span className="text-sm font-semibold text-red-400 shrink-0">-{formatPrice(order)}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setPendingDeleteId(order.id);
+                    }}
+                    aria-label="Supprimer"
+                    className="shrink-0 rounded-lg p-1.5 text-slate-500 hover:text-red-400 hover:bg-[#0d1b2a]"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </CardContent>
               </Card>
             );
@@ -121,6 +148,25 @@ export function AchatsClient() {
       )}
 
       <Pagination page={pageSafe} totalPages={totalPages} onPageChange={setPage} />
+
+      <Dialog open={!!pendingDeleteId} onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}>
+        <DialogContent className="sm:max-w-sm bg-[#0d1b2a] border-[#243552]">
+          <DialogHeader>
+            <DialogTitle className="text-slate-100">Supprimer cet achat ?</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Cette ligne sera définitivement supprimée du site.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="bg-transparent border-t-0">
+            <Button variant="outline" onClick={() => setPendingDeleteId(null)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

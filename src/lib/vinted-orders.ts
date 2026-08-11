@@ -28,3 +28,9 @@ export async function getOrders(orderType?: 'sold' | 'purchased'): Promise<Store
   }));
 }
 
+export async function deleteOrder(id: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from('vinted_orders').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
