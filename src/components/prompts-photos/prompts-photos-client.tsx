@@ -29,11 +29,17 @@ function isAvailableFor(restrictTo: ClothingKind[] | undefined, kind: ClothingKi
 // come back from Supabase without it. Layer each saved entry over its
 // current default (matched by id) so new fields get backfilled without
 // touching anything the user actually edited (label/value/etc. from the
-// saved entry always win) or losing entries/deletions they made.
+// saved entry always win) or losing entries/deletions they made. Also
+// appends any brand-new default entries (new id, e.g. a newly-added
+// background like "Cuisine") that predate the user's save entirely, since
+// otherwise they'd never show up at all -- not just missing a field.
 function withDefaults<T extends { id: string }>(saved: T[] | undefined, defaults: T[]): T[] {
   if (!saved) return defaults;
   const defaultsById = new Map(defaults.map((d) => [d.id, d]));
-  return saved.map((s) => ({ ...defaultsById.get(s.id), ...s }));
+  const merged = saved.map((s) => ({ ...defaultsById.get(s.id), ...s }));
+  const savedIds = new Set(saved.map((s) => s.id));
+  const newDefaults = defaults.filter((d) => !savedIds.has(d.id));
+  return [...merged, ...newDefaults];
 }
 import { getPhotoPromptSettings, savePhotoPromptSettings } from '@/lib/photo-prompts';
 import { Camera, Plus, Trash2, Copy, Check } from 'lucide-react';
