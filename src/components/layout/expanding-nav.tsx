@@ -1,12 +1,13 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, TrendingUp, ShoppingBag, Camera } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, ShoppingBag, Scale, Camera } from 'lucide-react';
 
 const links = [
   { href: '/',               label: 'Dashboard',      icon: LayoutDashboard },
   { href: '/achats',         label: 'Achats',          icon: ShoppingBag },
   { href: '/ventes',         label: 'Ventes',          icon: TrendingUp },
+  { href: '/marges',         label: 'Marges',          icon: Scale },
   { href: '/prompts-photos', label: 'Prompts',  icon: Camera },
 ];
 

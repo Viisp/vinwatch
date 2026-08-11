@@ -52,6 +52,44 @@ export function sortOrders(orders: StoredOrder[], sortBy: SortOption): StoredOrd
   return sorted;
 }
 
+export interface OrderMarginMatch {
+  sale: StoredOrder;
+  purchase: StoredOrder | null;
+  margin: number | null;
+}
+
+function normalizeTitle(title: string): string {
+  return title.trim().toLowerCase();
+}
+
+// Mirrors the matching heuristic in Code.gs's calculerMarges(): a sale and a
+// purchase are linked when one title contains the other. There's no shared
+// id between a sale and the purchase it came from (Vinted doesn't expose
+// one), so this substring match is the best available signal -- same
+// tradeoff as the Sheet-side version, just also usable on the site. Each
+// purchase is only ever matched to one sale, so a cheap item bought twice
+// doesn't get double-counted as the cost basis for two different sales.
+export function matchOrderMargins(orders: StoredOrder[]): OrderMarginMatch[] {
+  const sales = sortOrders(orders.filter((o) => o.orderType === 'sold'), 'date-desc');
+  const purchases = orders.filter((o) => o.orderType === 'purchased');
+  const usedPurchaseIds = new Set<string>();
+
+  return sales.map((sale) => {
+    const saleTitle = normalizeTitle(sale.title);
+    const purchase = purchases.find((p) => {
+      if (usedPurchaseIds.has(p.id)) return false;
+      const purchaseTitle = normalizeTitle(p.title);
+      if (!purchaseTitle) return false;
+      return saleTitle.includes(purchaseTitle) || purchaseTitle.includes(saleTitle);
+    });
+
+    if (!purchase) return { sale, purchase: null, margin: null };
+    usedPurchaseIds.add(purchase.id);
+    const margin = (parseFloat(sale.priceAmount) || 0) - (parseFloat(purchase.priceAmount) || 0);
+    return { sale, purchase, margin };
+  });
+}
+
 export function computeOrdersSummary(orders: StoredOrder[]): OrdersSummary {
   let totalSold = 0;
   let totalPurchased = 0;
