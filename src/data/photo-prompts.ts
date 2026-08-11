@@ -40,12 +40,27 @@ export interface PromptMode {
   restrictTo?: ClothingKind[];
 }
 
+// Ids of every default entry the user's client has already merged in at
+// least once, per list. Lets a later load tell "this default is brand new"
+// (append it) apart from "the user deleted this default on purpose" (leave
+// it gone) -- without this, a deleted default reappears on every reload
+// since it's simply missing from the saved list, indistinguishable from
+// one that was never added in the first place.
+export interface KnownDefaultIds {
+  modes: string[];
+  clothingTypes: string[];
+  angles: string[];
+  poses: string[];
+  backgrounds: string[];
+}
+
 export interface PromptSettings {
   modes: PromptMode[];
   clothingTypes: PromptOption[];
   angles: PromptOption[];
   poses: PromptOption[];
   backgrounds: PromptOption[];
+  knownDefaultIds?: KnownDefaultIds;
 }
 
 const PRESERVE_SUFFIX =

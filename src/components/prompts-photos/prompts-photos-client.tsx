@@ -13,6 +13,7 @@ import {
   type PromptMode,
   type PromptOption,
   type ClothingKind,
+  type KnownDefaultIds,
 } from '@/data/photo-prompts';
 
 const CLOTHING_KINDS: { id: ClothingKind; label: string }[] = [
@@ -25,20 +26,36 @@ function isAvailableFor(restrictTo: ClothingKind[] | undefined, kind: ClothingKi
   return !restrictTo || restrictTo.length === 0 || !kind || restrictTo.includes(kind);
 }
 
+// Snapshot of every default id that exists in *this* build. Written into
+// every save so a later load knows which now-missing ids were deliberately
+// deleted rather than never-yet-added (see withDefaults above).
+const CURRENT_KNOWN_DEFAULT_IDS: KnownDefaultIds = {
+  modes: DEFAULT_PROMPT_MODES.map((m) => m.id),
+  clothingTypes: DEFAULT_CLOTHING_TYPES.map((c) => c.id),
+  angles: DEFAULT_ANGLES.map((a) => a.id),
+  poses: DEFAULT_POSES.map((p) => p.id),
+  backgrounds: DEFAULT_BACKGROUNDS.map((b) => b.id),
+};
+
 // Settings saved before a field existed (emoji, kind, restrictTo, family...)
 // come back from Supabase without it. Layer each saved entry over its
 // current default (matched by id) so new fields get backfilled without
 // touching anything the user actually edited (label/value/etc. from the
-// saved entry always win) or losing entries/deletions they made. Also
-// appends any brand-new default entries (new id, e.g. a newly-added
-// background like "Cuisine") that predate the user's save entirely, since
-// otherwise they'd never show up at all -- not just missing a field.
-function withDefaults<T extends { id: string }>(saved: T[] | undefined, defaults: T[]): T[] {
+// saved entry always win) or losing entries/deletions they made.
+//
+// New default entries (id missing from `saved`) are appended -- but only if
+// they're NOT in `knownIds`. Without that check, deleting a default (e.g.
+// "Vue du ciel") makes it vanish from `saved`, which is indistinguishable
+// from a default that's simply new: both are "an id from defaults missing
+// from saved". `knownIds` is the list of default ids already merged in on a
+// previous load, so a missing-but-known id means "deleted on purpose".
+function withDefaults<T extends { id: string }>(saved: T[] | undefined, defaults: T[], knownIds: string[]): T[] {
   if (!saved) return defaults;
   const defaultsById = new Map(defaults.map((d) => [d.id, d]));
   const merged = saved.map((s) => ({ ...defaultsById.get(s.id), ...s }));
   const savedIds = new Set(saved.map((s) => s.id));
-  const newDefaults = defaults.filter((d) => !savedIds.has(d.id));
+  const knownIdSet = new Set(knownIds);
+  const newDefaults = defaults.filter((d) => !savedIds.has(d.id) && !knownIdSet.has(d.id));
   return [...merged, ...newDefaults];
 }
 import { getPhotoPromptSettings, savePhotoPromptSettings } from '@/lib/photo-prompts';
@@ -96,11 +113,12 @@ export function PromptsPhotosClient() {
 
   useEffect(() => {
     getPhotoPromptSettings().then((saved) => {
-      const m = withDefaults(saved?.modes, DEFAULT_PROMPT_MODES);
-      const c = withDefaults(saved?.clothingTypes, DEFAULT_CLOTHING_TYPES);
-      const a = withDefaults(saved?.angles, DEFAULT_ANGLES);
-      const p = withDefaults(saved?.poses, DEFAULT_POSES);
-      const b = withDefaults(saved?.backgrounds, DEFAULT_BACKGROUNDS);
+      const known = saved?.knownDefaultIds;
+      const m = withDefaults(saved?.modes, DEFAULT_PROMPT_MODES, known?.modes ?? []);
+      const c = withDefaults(saved?.clothingTypes, DEFAULT_CLOTHING_TYPES, known?.clothingTypes ?? []);
+      const a = withDefaults(saved?.angles, DEFAULT_ANGLES, known?.angles ?? []);
+      const p = withDefaults(saved?.poses, DEFAULT_POSES, known?.poses ?? []);
+      const b = withDefaults(saved?.backgrounds, DEFAULT_BACKGROUNDS, known?.backgrounds ?? []);
       setModes(m);
       setClothingTypes(c);
       setAngles(a);
@@ -188,6 +206,7 @@ export function PromptsPhotosClient() {
       angles: next.angles ?? angles,
       poses: next.poses ?? poses,
       backgrounds: next.backgrounds ?? backgrounds,
+      knownDefaultIds: CURRENT_KNOWN_DEFAULT_IDS,
     });
   }
 
@@ -226,6 +245,7 @@ export function PromptsPhotosClient() {
         angles: DEFAULT_ANGLES,
         poses: DEFAULT_POSES,
         backgrounds: DEFAULT_BACKGROUNDS,
+        knownDefaultIds: CURRENT_KNOWN_DEFAULT_IDS,
       });
     } catch (err) {
       console.error('[PromptsPhotosClient] reset failed:', err);
