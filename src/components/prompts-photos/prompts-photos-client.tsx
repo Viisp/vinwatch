@@ -124,17 +124,22 @@ export function PromptsPhotosClient() {
   );
 
   const selectedMode = useMemo(() => availableModes.find((m) => m.id === selectedModeId), [availableModes, selectedModeId]);
-  const selectedAngle = useMemo(() => angles.find((a) => a.id === selectedAngleId), [angles, selectedAngleId]);
   const selectedPose = useMemo(() => availablePoses.find((p) => p.id === selectedPoseId), [availablePoses, selectedPoseId]);
 
-  // A pose "on a surface" only pairs with floor/surface backgrounds, and a
-  // pose "in a room" (cintre/mannequin) only with real-room backgrounds --
-  // otherwise a t-shirt on a hanger could end up "presented on a carpet".
+  // A pose "on a surface" only pairs with floor/surface backgrounds and
+  // angles, and a pose "in a room" (cintre/mannequin) only with real-room
+  // backgrounds and just face/back -- otherwise a hanging t-shirt could end
+  // up "presented on a carpet" shot from a bird's-eye view.
   const availableBackgrounds = useMemo(() => {
     if (!selectedMode?.usesPoseAngle || !selectedPose) return backgrounds;
     return backgrounds.filter((b) => !b.family || b.family === selectedPose.family);
   }, [backgrounds, selectedMode, selectedPose]);
+  const availableAngles = useMemo(() => {
+    if (!selectedMode?.usesPoseAngle || !selectedPose) return angles;
+    return angles.filter((a) => !a.family || a.family === selectedPose.family);
+  }, [angles, selectedMode, selectedPose]);
 
+  const selectedAngle = useMemo(() => availableAngles.find((a) => a.id === selectedAngleId), [availableAngles, selectedAngleId]);
   const selectedBackground = useMemo(
     () => availableBackgrounds.find((b) => b.id === selectedBackgroundId),
     [availableBackgrounds, selectedBackgroundId]
@@ -143,13 +148,14 @@ export function PromptsPhotosClient() {
   // If the garment changes and the current mode/pose is no longer valid for
   // it (e.g. switching from Chaussures to T-shirt while "Semelle" was
   // selected), fall back to the first option that's still available. Same
-  // for background when the pose's scene family changes.
+  // for angle/background when the pose's scene family changes.
   useEffect(() => {
     if (!loaded) return;
     if (!selectedMode && availableModes.length > 0) setSelectedModeId(availableModes[0].id);
     if (!selectedPose && availablePoses.length > 0) setSelectedPoseId(availablePoses[0].id);
+    if (!selectedAngle && availableAngles.length > 0) setSelectedAngleId(availableAngles[0].id);
     if (!selectedBackground && availableBackgrounds.length > 0) setSelectedBackgroundId(availableBackgrounds[0].id);
-  }, [loaded, selectedMode, selectedPose, selectedBackground, availableModes, availablePoses, availableBackgrounds]);
+  }, [loaded, selectedMode, selectedPose, selectedAngle, selectedBackground, availableModes, availablePoses, availableAngles, availableBackgrounds]);
 
   const resultText = useMemo(() => {
     if (!selectedMode) return '';
@@ -315,7 +321,7 @@ export function PromptsPhotosClient() {
                 <PickerSelect options={availablePoses} value={selectedPoseId} onChange={setSelectedPoseId} />
               </Field>
               <Field label="Angle">
-                <PickerSelect options={angles} value={selectedAngleId} onChange={setSelectedAngleId} />
+                <PickerSelect options={availableAngles} value={selectedAngleId} onChange={setSelectedAngleId} />
               </Field>
             </>
           )}

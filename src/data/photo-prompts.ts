@@ -68,9 +68,12 @@ export const DEFAULT_CLOTHING_TYPES: PromptOption[] = [
 export const DEFAULT_ANGLES: PromptOption[] = [
   { id: 'face', label: 'Face', emoji: '🟢', value: 'front view' },
   { id: 'dos', label: 'Dos', emoji: '🔵', value: 'back view' },
-  { id: 'cote', label: 'Côté', emoji: '🟡', value: 'side profile view' },
-  { id: 'ciel', label: 'Vue du ciel', emoji: '🔭', value: "straight top-down bird's-eye view" },
-  { id: 'bas', label: "Vue d'en bas", emoji: '🔽', value: 'extreme low-angle close-up view looking slightly upward, dramatic perspective' },
+  // Side/bird's-eye/low-angle only make sense for something laid on a
+  // surface -- a hanging shirt or a mannequin bust doesn't have a
+  // meaningful "top-down" or "side profile" shot the same way.
+  { id: 'cote', label: 'Côté', emoji: '🟡', family: 'surface', value: 'side profile view' },
+  { id: 'ciel', label: 'Vue du ciel', emoji: '🔭', family: 'surface', value: "straight top-down bird's-eye view" },
+  { id: 'bas', label: "Vue d'en bas", emoji: '🔽', family: 'surface', value: 'extreme low-angle close-up view looking slightly upward, dramatic perspective' },
 ];
 
 export const DEFAULT_POSES: PromptOption[] = [
