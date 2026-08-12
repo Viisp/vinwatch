@@ -3,12 +3,18 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { getOrders, deleteOrder } from '@/lib/vinted-orders';
+import { getOrders, deleteOrder, addOrder } from '@/lib/vinted-orders';
 import { vintedOrderUrl, sortOrders, SORT_OPTIONS, type SortOption, type StoredOrder } from '@/lib/vinted-calculations';
-import { ShoppingBag, Trash2 } from 'lucide-react';
+import { ShoppingBag, Trash2, Plus } from 'lucide-react';
 import SearchComponent from '@/components/ui/animated-glowing-search-bar';
 import { Pagination } from '@/components/ui/pagination';
+
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 const PAGE_SIZE = 10;
 
@@ -23,6 +29,14 @@ export function AchatsClient() {
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [page, setPage] = useState(1);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newPrice, setNewPrice] = useState('');
+  const [newDate, setNewDate] = useState(todayIsoDate());
+  const [newSource, setNewSource] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState('');
 
   useEffect(() => {
     getOrders('purchased').then((data) => {
@@ -40,6 +54,42 @@ export function AchatsClient() {
       await deleteOrder(id);
     } catch (err) {
       console.error('[AchatsClient] delete failed:', err);
+    }
+  }
+
+  function resetAddForm() {
+    setNewTitle('');
+    setNewPrice('');
+    setNewDate(todayIsoDate());
+    setNewSource('');
+    setAddError('');
+  }
+
+  async function handleAddOrder() {
+    if (!newTitle.trim()) { setAddError('Le titre est obligatoire.'); return; }
+    const amount = parseFloat(newPrice.replace(',', '.'));
+    if (!Number.isFinite(amount) || amount < 0) { setAddError('Prix invalide.'); return; }
+
+    setAdding(true);
+    setAddError('');
+    try {
+      await addOrder({
+        orderType: 'purchased',
+        title: newTitle.trim(),
+        priceAmount: amount.toFixed(2),
+        priceCurrency: 'EUR',
+        orderDate: new Date(newDate).toISOString(),
+        status: 'Payé',
+        vintedAccountLabel: newSource.trim() || 'Externe',
+      });
+      const data = await getOrders('purchased');
+      setOrders(data);
+      setAddOpen(false);
+      resetAddForm();
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Erreur inconnue.');
+    } finally {
+      setAdding(false);
     }
   }
 
@@ -65,20 +115,25 @@ export function AchatsClient() {
           <ShoppingBag className="w-5 h-5 text-[#00c896]" />
           Achats ({filtered.length})
         </h1>
-        {orders.length > 0 && (
-          <div className="flex items-center gap-2">
-            <SearchComponent value={search} onChange={handleSearchChange} placeholder="Rechercher un article…" />
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="h-10 bg-[#1a2d42] border border-[#243552] rounded-lg px-3 text-sm text-slate-100 focus:outline-none focus:border-[#00c896] transition-colors"
-            >
-              {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {orders.length > 0 && (
+            <>
+              <SearchComponent value={search} onChange={handleSearchChange} placeholder="Rechercher un article…" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="h-10 bg-[#1a2d42] border border-[#243552] rounded-lg px-3 text-sm text-slate-100 focus:outline-none focus:border-[#00c896] transition-colors"
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </>
+          )}
+          <Button type="button" size="sm" onClick={() => setAddOpen(true)}>
+            <Plus className="w-3.5 h-3.5" /> Ajouter un achat
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -163,6 +218,69 @@ export function AchatsClient() {
             </Button>
             <Button variant="destructive" onClick={confirmDelete}>
               Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) resetAddForm(); }}>
+        <DialogContent className="sm:max-w-sm bg-[#0d1b2a] border-[#243552]">
+          <DialogHeader>
+            <DialogTitle className="text-slate-100">Ajouter un achat</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Pour un article acheté ailleurs que sur Vinted.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 px-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="newTitle" className="text-slate-400">Article</Label>
+              <Input
+                id="newTitle"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="ex: Air Jordan 4 Retro SE 95 Neon, taille 39"
+                className="bg-[#1a2d42] border-[#243552] text-slate-100"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="newPrice" className="text-slate-400">Prix (€)</Label>
+              <Input
+                id="newPrice"
+                value={newPrice}
+                onChange={(e) => setNewPrice(e.target.value)}
+                placeholder="ex: 128.72"
+                inputMode="decimal"
+                className="bg-[#1a2d42] border-[#243552] text-slate-100"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="newDate" className="text-slate-400">Date</Label>
+              <Input
+                id="newDate"
+                type="date"
+                value={newDate}
+                onChange={(e) => setNewDate(e.target.value)}
+                className="bg-[#1a2d42] border-[#243552] text-slate-100"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="newSource" className="text-slate-400">Source (optionnel)</Label>
+              <Input
+                id="newSource"
+                value={newSource}
+                onChange={(e) => setNewSource(e.target.value)}
+                placeholder="ex: Whatnot"
+                className="bg-[#1a2d42] border-[#243552] text-slate-100"
+              />
+            </div>
+            {addError && <p className="text-xs text-red-400">{addError}</p>}
+          </div>
+          <DialogFooter className="bg-transparent border-t-0">
+            <Button type="button" variant="outline" onClick={() => setAddOpen(false)} disabled={adding}>
+              Annuler
+            </Button>
+            <Button type="button" onClick={handleAddOrder} disabled={adding}>
+              {adding ? 'Ajout…' : 'Ajouter'}
             </Button>
           </DialogFooter>
         </DialogContent>
