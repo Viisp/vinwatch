@@ -367,7 +367,7 @@ export function PromptsPhotosClient() {
           <p className="text-xs leading-relaxed text-slate-300 whitespace-pre-wrap rounded-lg bg-[#0d1b2a] border border-[#243552] p-3">
             {resultText}
           </p>
-          <Button size="sm" onClick={handleCopy}>
+          <Button type="button" size="sm" onClick={handleCopy}>
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5" /> Copié
@@ -400,10 +400,10 @@ export function PromptsPhotosClient() {
       )}
 
       <div className="flex items-center justify-center gap-3 pt-6 border-t border-[#243552]">
-        <Button size="sm" onClick={handleSave} disabled={saving}>
+        <Button type="button" size="sm" onClick={handleSave} disabled={saving}>
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
-        <Button size="sm" variant="outline" onClick={requestReset} disabled={saving}>
+        <Button type="button" size="sm" variant="outline" onClick={requestReset} disabled={saving}>
           Réinitialiser
         </Button>
       </div>
@@ -417,10 +417,10 @@ export function PromptsPhotosClient() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="bg-transparent border-t-0">
-            <Button variant="outline" onClick={() => setPendingDelete(null)}>
+            <Button type="button" variant="outline" onClick={() => setPendingDelete(null)}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
+            <Button type="button" variant="destructive" onClick={confirmDelete}>
               Supprimer
             </Button>
           </DialogFooter>
@@ -437,10 +437,10 @@ export function PromptsPhotosClient() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="bg-transparent border-t-0">
-            <Button variant="outline" onClick={() => setPendingReset(false)}>
+            <Button type="button" variant="outline" onClick={() => setPendingReset(false)}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={confirmReset}>
+            <Button type="button" variant="destructive" onClick={confirmReset}>
               Réinitialiser
             </Button>
           </DialogFooter>
@@ -583,7 +583,7 @@ function ListManager({
             )}
           </div>
         ))}
-        <Button variant="outline" size="sm" onClick={onAdd}>
+        <Button type="button" variant="outline" size="sm" onClick={onAdd}>
           <Plus className="w-3.5 h-3.5" /> Ajouter
         </Button>
       </CardContent>
@@ -666,7 +666,7 @@ function ModeManager({
             />
           </div>
         ))}
-        <Button variant="outline" size="sm" onClick={onAdd}>
+        <Button type="button" variant="outline" size="sm" onClick={onAdd}>
           <Plus className="w-3.5 h-3.5" /> Ajouter un type de photo
         </Button>
       </CardContent>

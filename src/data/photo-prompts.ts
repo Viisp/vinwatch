@@ -86,12 +86,9 @@ export const DEFAULT_CLOTHING_TYPES: PromptOption[] = [
 export const DEFAULT_ANGLES: PromptOption[] = [
   { id: 'face', label: 'Face', emoji: '🟢', value: 'front view' },
   { id: 'dos', label: 'Dos', emoji: '🔵', value: 'back view' },
-  // Side/bird's-eye/low-angle only make sense for something laid on a
-  // surface -- a hanging shirt or a mannequin bust doesn't have a
-  // meaningful "top-down" or "side profile" shot the same way.
+  // Side only makes sense for something laid on a surface -- a hanging
+  // shirt or a mannequin bust doesn't have a meaningful "side profile" shot.
   { id: 'cote', label: 'Côté', emoji: '🟡', family: 'surface', value: 'side profile view' },
-  { id: 'ciel', label: 'Vue du ciel', emoji: '🔭', family: 'surface', value: "straight top-down bird's-eye view" },
-  { id: 'bas', label: "Vue d'en bas", emoji: '🔽', family: 'surface', value: 'extreme low-angle close-up view looking slightly upward, dramatic perspective' },
 ];
 
 export const DEFAULT_POSES: PromptOption[] = [
@@ -129,7 +126,8 @@ export const DEFAULT_PROMPT_MODES: PromptMode[] = [
     name: 'Logo / Marque',
     emoji: '🏷️',
     usesPoseAngle: false,
-    text: `Ultra realistic 4K close-up of the original brand logo embroidered or printed on {item}, photographed straight-on (flat, perpendicular angle, no tilt), filling most of the frame while keeping surrounding fabric visible, razor-sharp embroidery or print details, realistic fabric weave and stitching, true-to-life colors, soft natural daylight, presented on {background} slightly visible around the edges, preserve the original logo exactly as-is, no redesign, no enhancement, no distortion, no added text. ${PRESERVE_SUFFIX}`,
+    usesBackground: false,
+    text: `Ultra realistic 4K extreme close-up macro shot of the original brand logo embroidered or printed on {item}, photographed straight-on (flat, perpendicular angle, no tilt), filling almost the entire frame, razor-sharp embroidery or print details, realistic fabric weave and stitching, true-to-life colors, soft natural daylight, no visible background or surrounding surface, preserve the original logo exactly as-is, no redesign, no enhancement, no distortion, no added text. ${PRESERVE_SUFFIX}`,
   },
   {
     id: 'etiquette',
