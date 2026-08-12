@@ -214,6 +214,8 @@ export function PromptsPhotosClient() {
     setSaving(true);
     try {
       await persist({});
+      setManaging(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error('[PromptsPhotosClient] save failed:', err);
     } finally {
