@@ -28,14 +28,17 @@ export interface PromptOption {
 }
 
 // A "type de photo": how the final prompt is assembled. The three close-up
-// modes (logo/étiquette/semelle) only need {item} and {background} — the
-// pose/angle pickers are irrelevant for a close-up and stay hidden for them.
+// modes (logo/étiquette/semelle) don't need pose/angle -- and a true macro
+// shot (étiquette) doesn't need a background pick either, since nothing of
+// it should be visible in frame.
 export interface PromptMode {
   id: string;
   name: string;
   emoji: string;
   text: string;
   usesPoseAngle: boolean;
+  // Defaults to true when omitted (every existing mode used {background}).
+  usesBackground?: boolean;
   // Omitted/empty = available for every clothing kind.
   restrictTo?: ClothingKind[];
 }
@@ -133,7 +136,8 @@ export const DEFAULT_PROMPT_MODES: PromptMode[] = [
     name: 'Étiquette',
     emoji: '🔖',
     usesPoseAngle: false,
-    text: `Ultra realistic 4K close-up of the original clothing label of {item} laid flat on {background}, photographed straight-on, clearly showing the brand, size and care label, sharp readable text, realistic stitching and fabric texture, true-to-life colors, natural lighting, preserve every detail exactly as-is, no redesign, no fake labels, no distortion, no added text. ${PRESERVE_SUFFIX}`,
+    usesBackground: false,
+    text: `Ultra realistic 4K extreme close-up macro shot of the original clothing label of {item}, filling almost the entire frame, photographed straight-on, clearly showing the brand, size and care label, sharp readable text, realistic stitching and fabric texture, true-to-life colors, natural lighting, no visible background or surrounding surface, preserve every detail exactly as-is, no redesign, no fake labels, no distortion, no added text. ${PRESERVE_SUFFIX}`,
   },
   {
     id: 'semelle',

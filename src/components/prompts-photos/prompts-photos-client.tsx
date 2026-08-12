@@ -351,9 +351,11 @@ export function PromptsPhotosClient() {
               </Field>
             </>
           )}
-          <Field label="Fond">
-            <PickerSelect options={availableBackgrounds} value={selectedBackgroundId} onChange={setSelectedBackgroundId} />
-          </Field>
+          {selectedMode?.usesBackground !== false && (
+            <Field label="Fond">
+              <PickerSelect options={availableBackgrounds} value={selectedBackgroundId} onChange={setSelectedBackgroundId} />
+            </Field>
+          )}
         </CardContent>
       </Card>
 
@@ -633,6 +635,10 @@ function ModeManager({
               <label className="flex items-center gap-1 text-[11px] text-slate-400 whitespace-nowrap">
                 <input type="checkbox" checked={m.usesPoseAngle} onChange={(e) => update(m.id, { usesPoseAngle: e.target.checked })} />
                 Pose/Angle
+              </label>
+              <label className="flex items-center gap-1 text-[11px] text-slate-400 whitespace-nowrap">
+                <input type="checkbox" checked={m.usesBackground !== false} onChange={(e) => update(m.id, { usesBackground: e.target.checked })} />
+                Fond
               </label>
               <button type="button" onClick={() => onRemove(m.id)} aria-label="Supprimer" className="shrink-0 rounded-lg p-1.5 text-red-400 hover:bg-[#1a2d42]">
                 <Trash2 className="w-3.5 h-3.5" />
