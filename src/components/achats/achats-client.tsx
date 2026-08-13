@@ -2,8 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AnimatedBorderButton } from '@/components/ui/animated-border-button';
+import { AnimatedBorderButton as Button } from '@/components/ui/animated-border-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -179,9 +178,9 @@ export function AchatsClient() {
               </select>
             </>
           )}
-          <AnimatedBorderButton type="button" variant="outline" size="sm" onClick={openAddForm}>
+          <Button type="button" variant="outline" size="sm" onClick={openAddForm}>
             <Plus className="w-3.5 h-3.5" /> Ajouter un achat
-          </AnimatedBorderButton>
+          </Button>
         </div>
       </div>
 

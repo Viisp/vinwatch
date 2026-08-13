@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { AnimatedBorderButton as Button } from '@/components/ui/animated-border-button';
 
 const CANVAS_SIZE = 280; // display size, px
 const OUTPUT_SIZE = 512; // exported avatar resolution, px

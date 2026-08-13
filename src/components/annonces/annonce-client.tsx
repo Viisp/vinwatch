@@ -1,8 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AnimatedBorderButton } from '@/components/ui/animated-border-button';
+import { AnimatedBorderButton as Button } from '@/components/ui/animated-border-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -201,9 +200,9 @@ export function AnnonceClient() {
               <Label htmlFor="details" className="text-slate-400">Détails importants (optionnel)</Label>
               <Input id="details" value={details} onChange={(e) => setDetails(e.target.value)} placeholder="ex: Made in France, boutons gravés, matière fluide" className="bg-[#0d1b2a] border-[#243552] text-slate-100" />
             </div>
-            <AnimatedBorderButton type="button" variant="outline" className="w-full" onClick={() => setGenerated(true)}>
+            <Button type="button" variant="outline" className="w-full" onClick={() => setGenerated(true)}>
               <FileText className="w-4 h-4" /> Générer la description
-            </AnimatedBorderButton>
+            </Button>
           </CardContent>
         </Card>
 
