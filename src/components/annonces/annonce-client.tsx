@@ -102,13 +102,13 @@ export function AnnonceClient() {
     lines.push('');
 
     // État
-    const etatLine = etatDetail.trim() ? `${etat} — ${etatDetail.trim()}` : etat;
-    lines.push(`✅ État : ${etatLine}`);
+    lines.push(`✅ État : ${etat}`);
+    if (etatDetail.trim()) lines.push(`⚠️ Attention : ${etatDetail.trim()}`);
     lines.push('');
 
     // Envoi
     lines.push('📦 Envoi rapide et soigné sous 24-48h !');
-    lines.push('💬 N\'hésitez pas à me contacter pour toute question 😊');
+    lines.push('💬 N\'hésitez pas à me contacter pour toute question.');
 
     return lines.join('\n');
   }, [marque, type, couleur, details, mesures, taille, etat, etatDetail]);
