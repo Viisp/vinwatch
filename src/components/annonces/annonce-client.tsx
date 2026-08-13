@@ -7,23 +7,25 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Copy, Check, Hash } from 'lucide-react';
 
-const TYPES = ['T-shirt', 'Chemise', 'Sweat', 'Veste', 'Short', 'Jean', 'Jogging', 'Chaussures', 'Casquette', 'Robe', 'Jupe'];
+const TYPE_SUGGESTIONS = ['T-shirt', 'Chemise', 'Sweat', 'Veste', 'Short', 'Jean', 'Jogging', 'Chaussures', 'Casquette', 'Robe', 'Jupe', 'Pull', 'Polo'];
 const ETATS = ['Neuf avec étiquette', 'Neuf sans étiquette', 'Très bon état', 'Bon état', 'Satisfaisant'];
 
-// A few generic type-specific hashtags on top of the always-present ones --
+// Niche/style hashtags per type on top of the always-present + brand ones --
 // purely template-driven (no AI call), same spirit as prompts-photos.
 const TYPE_HASHTAGS: Record<string, string[]> = {
-  'T-shirt': ['tshirt', 'haut', 'casual'],
-  Chemise: ['chemise', 'haut', 'chic'],
-  Sweat: ['sweat', 'hoodie', 'streetwear'],
-  Veste: ['veste', 'outerwear', 'style'],
-  Short: ['short', 'bas', 'ete'],
-  Jean: ['jean', 'denim', 'bas'],
-  Jogging: ['jogging', 'bas', 'sport'],
-  Chaussures: ['chaussures', 'sneakers', 'shoes'],
-  Casquette: ['casquette', 'accessoire', 'cap'],
-  Robe: ['robe', 'dress', 'femme'],
-  Jupe: ['jupe', 'skirt', 'femme'],
+  tshirt: ['tshirt', 'haut', 'casual'],
+  chemise: ['chemise', 'haut', 'chic'],
+  sweat: ['sweat', 'hoodie', 'streetwear'],
+  pull: ['pull', 'maille', 'automnehiver'],
+  polo: ['polo', 'chic', 'casual'],
+  veste: ['veste', 'outerwear', 'style'],
+  short: ['short', 'bas', 'ete'],
+  jean: ['jean', 'denim', 'bas'],
+  jogging: ['jogging', 'bas', 'sport'],
+  chaussures: ['chaussures', 'sneakers', 'shoes'],
+  casquette: ['casquette', 'accessoire', 'cap'],
+  robe: ['robe', 'dress', 'femme'],
+  jupe: ['jupe', 'skirt', 'femme'],
 };
 
 function slugTag(s: string): string {
@@ -36,40 +38,80 @@ function slugTag(s: string): string {
     .toLowerCase();
 }
 
+function guessTypeHashtags(type: string): string[] {
+  const words = type.toLowerCase().split(/\s+/);
+  for (const w of words) {
+    const slug = slugTag(w);
+    if (TYPE_HASHTAGS[slug]) return TYPE_HASHTAGS[slug];
+  }
+  return words.slice(0, 2).map(slugTag).filter(Boolean);
+}
+
 export function AnnonceClient() {
   const [type, setType] = useState('T-shirt');
   const [marque, setMarque] = useState('');
   const [taille, setTaille] = useState('');
+  const [mesures, setMesures] = useState('');
   const [etat, setEtat] = useState('Très bon état');
+  const [etatDetail, setEtatDetail] = useState('');
   const [couleur, setCouleur] = useState('');
-  const [matiere, setMatiere] = useState('');
+  const [details, setDetails] = useState('');
   const [generated, setGenerated] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const title = useMemo(() => {
-    return [type, marque.trim(), couleur.trim()].filter(Boolean).join(' ');
-  }, [type, marque, couleur]);
+    return [marque.trim(), type.trim(), couleur.trim(), taille.trim() && `Taille ${taille.trim()}`]
+      .filter(Boolean)
+      .join(' ');
+  }, [marque, type, couleur, taille]);
 
   const description = useMemo(() => {
-    const lines = [title || type];
+    const article = [marque.trim(), type.trim()].filter(Boolean).join(' ') || 'cet article';
+    const lines: string[] = [];
+
+    // Accroche
+    lines.push(
+      `Craquez pour ${article}${couleur.trim() ? `, coloris ${couleur.trim().toLowerCase()}` : ''} — une pièce qui a tout pour plaire !`
+    );
     lines.push('');
-    if (taille.trim()) lines.push(`📏 Taille : ${taille.trim()}`);
-    lines.push(`✨ État : ${etat.toLowerCase()}`);
-    if (matiere.trim()) lines.push(`🧵 Matière : ${matiere.trim()}`);
+
+    // Caractéristiques
+    lines.push('✨ Caractéristiques :');
+    if (couleur.trim()) lines.push(`• Couleur / Motif : ${couleur.trim()}`);
+    if (type.trim()) lines.push(`• Type : ${type.trim()}`);
+    if (details.trim()) lines.push(`• Détails : ${details.trim()}`);
     lines.push('');
-    lines.push('Un indispensable à avoir !');
+
+    // Mesures
+    lines.push('📏 Mesures :');
+    if (mesures.trim()) {
+      lines.push(mesures.trim());
+    } else if (taille.trim()) {
+      lines.push(`Taille ${taille.trim()} (mesures précises sur demande)`);
+    } else {
+      lines.push('Mesures précises sur demande');
+    }
     lines.push('');
-    lines.push('📦 Envoi soigné et rapide');
-    lines.push('💬 N\'hésitez pas à me contacter pour plus d\'infos !');
+
+    // État
+    const etatLine = etatDetail.trim() ? `${etat} — ${etatDetail.trim()}` : etat;
+    lines.push(`✅ État : ${etatLine}`);
+    lines.push('');
+
+    // Envoi
+    lines.push('📦 Envoi rapide et soigné sous 24-48h !');
+    lines.push('💬 N\'hésitez pas à me contacter pour toute question 😊');
+
     return lines.join('\n');
-  }, [title, type, taille, etat, matiere]);
+  }, [marque, type, couleur, details, mesures, taille, etat, etatDetail]);
 
   const hashtags = useMemo(() => {
-    const base = ['vinted', 'secondemain', 'modedurable'];
-    const typeTags = TYPE_HASHTAGS[type] ?? [slugTag(type)];
+    const base = ['vinted', 'secondemain', 'modedurable', 'bonneaffaire'];
     const marqueTag = marque.trim() ? [slugTag(marque)] : [];
-    return Array.from(new Set([...base, ...marqueTag, ...typeTags])).filter(Boolean);
-  }, [type, marque]);
+    const couleurTag = couleur.trim() ? [slugTag(couleur)] : [];
+    const typeTags = guessTypeHashtags(type);
+    return Array.from(new Set([...base, ...marqueTag, ...typeTags, ...couleurTag])).filter(Boolean).slice(0, 15);
+  }, [marque, type, couleur]);
 
   async function handleCopyDescription() {
     await navigator.clipboard.writeText(description);
@@ -88,8 +130,8 @@ export function AnnonceClient() {
         Générateur d&apos;annonce
       </h1>
       <p className="text-sm text-slate-400 mb-6">
-        Renseigne les infos de l&apos;article pour générer un titre, une description et des hashtags prêts à coller
-        sur Vinted.
+        Renseigne les infos de l&apos;article pour générer un titre optimisé, une description structurée (accroche,
+        caractéristiques, mesures, état, envoi) et des hashtags ciblés, prêts à coller sur Vinted.
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -99,25 +141,36 @@ export function AnnonceClient() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-slate-400">Type d&apos;article</Label>
-              <Select value={type} onValueChange={(v) => setType(v ?? 'T-shirt')}>
-                <SelectTrigger className="w-full bg-[#0d1b2a] border-[#243552] text-slate-100">
-                  <SelectValue placeholder="Choisir…">{() => type}</SelectValue>
-                </SelectTrigger>
-                <SelectContent className="bg-[#0d1b2a] border border-[#243552] text-slate-100">
-                  {TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
               <Label htmlFor="marque" className="text-slate-400">Marque</Label>
-              <Input id="marque" value={marque} onChange={(e) => setMarque(e.target.value)} placeholder="ex: Izod" className="bg-[#0d1b2a] border-[#243552] text-slate-100" />
+              <Input id="marque" value={marque} onChange={(e) => setMarque(e.target.value)} placeholder="ex: Lacoste" className="bg-[#0d1b2a] border-[#243552] text-slate-100" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="taille" className="text-slate-400">Taille</Label>
-              <Input id="taille" value={taille} onChange={(e) => setTaille(e.target.value)} placeholder="ex: M" className="bg-[#0d1b2a] border-[#243552] text-slate-100" />
+              <Label htmlFor="type" className="text-slate-400">Type d&apos;article</Label>
+              <Input
+                id="type"
+                list="type-suggestions"
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                placeholder="ex: Polo en maille tricot"
+                className="bg-[#0d1b2a] border-[#243552] text-slate-100"
+              />
+              <datalist id="type-suggestions">
+                {TYPE_SUGGESTIONS.map((t) => (
+                  <option key={t} value={t} />
+                ))}
+              </datalist>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="taille" className="text-slate-400">Taille officielle</Label>
+              <Input id="taille" value={taille} onChange={(e) => setTaille(e.target.value)} placeholder="ex: S / FR 3" className="bg-[#0d1b2a] border-[#243552] text-slate-100" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="mesures" className="text-slate-400">Mesures (optionnel)</Label>
+              <Input id="mesures" value={mesures} onChange={(e) => setMesures(e.target.value)} placeholder="ex: Aisselle à aisselle 48cm, Longueur 60cm" className="bg-[#0d1b2a] border-[#243552] text-slate-100" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="couleur" className="text-slate-400">Couleur / Motif</Label>
+              <Input id="couleur" value={couleur} onChange={(e) => setCouleur(e.target.value)} placeholder="ex: Rayé bleu et vert néon" className="bg-[#0d1b2a] border-[#243552] text-slate-100" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-slate-400">État</Label>
@@ -133,12 +186,12 @@ export function AnnonceClient() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="couleur" className="text-slate-400">Couleur</Label>
-              <Input id="couleur" value={couleur} onChange={(e) => setCouleur(e.target.value)} placeholder="ex: Noir" className="bg-[#0d1b2a] border-[#243552] text-slate-100" />
+              <Label htmlFor="etatDetail" className="text-slate-400">Précision état (optionnel)</Label>
+              <Input id="etatDetail" value={etatDetail} onChange={(e) => setEtatDetail(e.target.value)} placeholder="ex: aucune tache ni trou" className="bg-[#0d1b2a] border-[#243552] text-slate-100" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="matiere" className="text-slate-400">Matière (optionnel)</Label>
-              <Input id="matiere" value={matiere} onChange={(e) => setMatiere(e.target.value)} placeholder="Ex: Coton, Cuir, Polyester…" className="bg-[#0d1b2a] border-[#243552] text-slate-100" />
+              <Label htmlFor="details" className="text-slate-400">Détails importants (optionnel)</Label>
+              <Input id="details" value={details} onChange={(e) => setDetails(e.target.value)} placeholder="ex: Made in France, boutons gravés, matière fluide" className="bg-[#0d1b2a] border-[#243552] text-slate-100" />
             </div>
             <Button type="button" className="w-full" onClick={() => setGenerated(true)}>
               <FileText className="w-4 h-4" /> Générer la description
@@ -148,6 +201,17 @@ export function AnnonceClient() {
 
         {generated ? (
           <div className="space-y-4">
+            <Card className="bg-[#1a2d42]/80 border-[#00c896]/40">
+              <CardHeader>
+                <span className="text-sm font-semibold text-[#00c896]">✓ Titre optimisé</span>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-200 rounded-lg bg-[#0d1b2a] border border-[#243552] p-3">
+                  {title || 'Remplis au moins la marque ou le type'}
+                </p>
+              </CardContent>
+            </Card>
+
             <Card className="bg-[#1a2d42]/80 border-[#00c896]/40">
               <CardHeader className="flex flex-row items-center justify-between">
                 <span className="text-sm font-semibold text-[#00c896]">✓ Description générée</span>
@@ -166,7 +230,7 @@ export function AnnonceClient() {
             <Card className="bg-[#1a2d42]/80 border-[#243552]">
               <CardHeader>
                 <span className="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
-                  <Hash className="w-4 h-4 text-[#00c896]" /> Hashtags suggérés
+                  <Hash className="w-4 h-4 text-[#00c896]" /> Hashtags ciblés ({hashtags.length})
                 </span>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
