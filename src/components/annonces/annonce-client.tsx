@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AnimatedBorderButton } from '@/components/ui/animated-border-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -39,12 +40,19 @@ function slugTag(s: string): string {
 }
 
 function guessTypeHashtags(type: string): string[] {
-  const words = type.toLowerCase().split(/\s+/);
+  // Try the whole type as one glued word first ("T Shirt" / "T-shirt" both
+  // slug to "tshirt"), so a match isn't missed just because the user typed
+  // a space instead of the datalist's hyphen.
+  const fullSlug = slugTag(type);
+  if (TYPE_HASHTAGS[fullSlug]) return TYPE_HASHTAGS[fullSlug];
+
+  const words = type.toLowerCase().split(/\s+/).filter(Boolean);
   for (const w of words) {
     const slug = slugTag(w);
     if (TYPE_HASHTAGS[slug]) return TYPE_HASHTAGS[slug];
   }
-  return words.slice(0, 2).map(slugTag).filter(Boolean);
+  // Fallback: real words only -- a lone "#t" from "T Shirt" isn't useful.
+  return words.map(slugTag).filter((w) => w.length >= 3).slice(0, 2);
 }
 
 export function AnnonceClient() {
@@ -193,9 +201,9 @@ export function AnnonceClient() {
               <Label htmlFor="details" className="text-slate-400">Détails importants (optionnel)</Label>
               <Input id="details" value={details} onChange={(e) => setDetails(e.target.value)} placeholder="ex: Made in France, boutons gravés, matière fluide" className="bg-[#0d1b2a] border-[#243552] text-slate-100" />
             </div>
-            <Button type="button" className="w-full" onClick={() => setGenerated(true)}>
+            <AnimatedBorderButton type="button" variant="outline" className="w-full" onClick={() => setGenerated(true)}>
               <FileText className="w-4 h-4" /> Générer la description
-            </Button>
+            </AnimatedBorderButton>
           </CardContent>
         </Card>
 
