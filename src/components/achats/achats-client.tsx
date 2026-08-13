@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { getOrders, deleteOrder, addOrder } from '@/lib/vinted-orders';
+import { getOrders, deleteOrder, addOrder, updateOrder, uploadOrderPhoto } from '@/lib/vinted-orders';
 import { vintedOrderUrl, sortOrders, SORT_OPTIONS, type SortOption, type StoredOrder } from '@/lib/vinted-calculations';
-import { ShoppingBag, Trash2, Plus } from 'lucide-react';
+import { ShoppingBag, Trash2, Plus, Pencil, Camera } from 'lucide-react';
 import SearchComponent from '@/components/ui/animated-glowing-search-bar';
 import { Pagination } from '@/components/ui/pagination';
 
@@ -30,13 +30,16 @@ export function AchatsClient() {
   const [page, setPage] = useState(1);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-  const [addOpen, setAddOpen] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [newPrice, setNewPrice] = useState('');
-  const [newDate, setNewDate] = useState(todayIsoDate());
-  const [newSource, setNewSource] = useState('');
-  const [adding, setAdding] = useState(false);
-  const [addError, setAddError] = useState('');
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formTitle, setFormTitle] = useState('');
+  const [formPrice, setFormPrice] = useState('');
+  const [formDate, setFormDate] = useState(todayIsoDate());
+  const [formSource, setFormSource] = useState('');
+  const [formPhotoFile, setFormPhotoFile] = useState<File | null>(null);
+  const [formPhotoPreview, setFormPhotoPreview] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     getOrders('purchased').then((data) => {
@@ -57,39 +60,84 @@ export function AchatsClient() {
     }
   }
 
-  function resetAddForm() {
-    setNewTitle('');
-    setNewPrice('');
-    setNewDate(todayIsoDate());
-    setNewSource('');
-    setAddError('');
+  function resetForm() {
+    setEditingId(null);
+    setFormTitle('');
+    setFormPrice('');
+    setFormDate(todayIsoDate());
+    setFormSource('');
+    setFormPhotoFile(null);
+    setFormPhotoPreview(null);
+    setFormError('');
   }
 
-  async function handleAddOrder() {
-    if (!newTitle.trim()) { setAddError('Le titre est obligatoire.'); return; }
-    const amount = parseFloat(newPrice.replace(',', '.'));
-    if (!Number.isFinite(amount) || amount < 0) { setAddError('Prix invalide.'); return; }
+  function openAddForm() {
+    resetForm();
+    setFormOpen(true);
+  }
 
-    setAdding(true);
-    setAddError('');
+  function openEditForm(order: StoredOrder) {
+    setEditingId(order.id);
+    setFormTitle(order.title);
+    setFormPrice(order.priceAmount);
+    setFormDate(order.orderDate.slice(0, 10));
+    setFormSource(order.vintedAccountLabel ?? '');
+    setFormPhotoFile(null);
+    setFormPhotoPreview(order.photoUrl);
+    setFormError('');
+    setFormOpen(true);
+  }
+
+  function handlePhotoSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setFormPhotoFile(file);
+    setFormPhotoPreview(URL.createObjectURL(file));
+  }
+
+  async function handleSubmitForm() {
+    if (!formTitle.trim()) { setFormError('Le titre est obligatoire.'); return; }
+    const amount = parseFloat(formPrice.replace(',', '.'));
+    if (!Number.isFinite(amount) || amount < 0) { setFormError('Prix invalide.'); return; }
+
+    setSaving(true);
+    setFormError('');
     try {
-      await addOrder({
-        orderType: 'purchased',
-        title: newTitle.trim(),
-        priceAmount: amount.toFixed(2),
-        priceCurrency: 'EUR',
-        orderDate: new Date(newDate).toISOString(),
-        status: 'Payé',
-        vintedAccountLabel: newSource.trim() || 'Externe',
-      });
+      let photoUrl: string | undefined;
+      if (formPhotoFile) {
+        photoUrl = await uploadOrderPhoto(formPhotoFile);
+      }
+
+      if (editingId) {
+        await updateOrder(editingId, {
+          title: formTitle.trim(),
+          priceAmount: amount.toFixed(2),
+          priceCurrency: 'EUR',
+          orderDate: new Date(formDate).toISOString(),
+          vintedAccountLabel: formSource.trim() || null,
+          ...(photoUrl !== undefined ? { photoUrl } : {}),
+        });
+      } else {
+        await addOrder({
+          orderType: 'purchased',
+          title: formTitle.trim(),
+          priceAmount: amount.toFixed(2),
+          priceCurrency: 'EUR',
+          orderDate: new Date(formDate).toISOString(),
+          status: 'Payé',
+          vintedAccountLabel: formSource.trim() || 'Externe',
+          photoUrl,
+        });
+      }
       const data = await getOrders('purchased');
       setOrders(data);
-      setAddOpen(false);
-      resetAddForm();
+      setFormOpen(false);
+      resetForm();
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : 'Erreur inconnue.');
+      setFormError(err instanceof Error ? err.message : 'Erreur inconnue.');
     } finally {
-      setAdding(false);
+      setSaving(false);
     }
   }
 
@@ -130,7 +178,7 @@ export function AchatsClient() {
               </select>
             </>
           )}
-          <Button type="button" size="sm" onClick={() => setAddOpen(true)}>
+          <Button type="button" size="sm" onClick={openAddForm}>
             <Plus className="w-3.5 h-3.5" /> Ajouter un achat
           </Button>
         </div>
@@ -181,6 +229,18 @@ export function AchatsClient() {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      openEditForm(order);
+                    }}
+                    aria-label="Modifier"
+                    className="shrink-0 rounded-lg p-1.5 text-slate-500 hover:text-[#00c896] hover:bg-[#0d1b2a]"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       setPendingDeleteId(order.id);
                     }}
                     aria-label="Supprimer"
@@ -213,74 +273,90 @@ export function AchatsClient() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="bg-transparent border-t-0">
-            <Button variant="outline" onClick={() => setPendingDeleteId(null)}>
+            <Button type="button" variant="outline" onClick={() => setPendingDeleteId(null)}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
+            <Button type="button" variant="destructive" onClick={confirmDelete}>
               Supprimer
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) resetAddForm(); }}>
+      <Dialog open={formOpen} onOpenChange={(open) => { setFormOpen(open); if (!open) resetForm(); }}>
         <DialogContent className="sm:max-w-sm bg-[#0d1b2a] border-[#243552]">
           <DialogHeader>
-            <DialogTitle className="text-slate-100">Ajouter un achat</DialogTitle>
+            <DialogTitle className="text-slate-100">{editingId ? "Modifier l'achat" : 'Ajouter un achat'}</DialogTitle>
             <DialogDescription className="text-slate-400">
-              Pour un article acheté ailleurs que sur Vinted.
+              {editingId ? 'Corrige les informations de cette ligne.' : 'Pour un article acheté ailleurs que sur Vinted.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 px-1">
+            <div className="flex items-center gap-3">
+              <label className="relative group w-16 h-16 shrink-0 cursor-pointer">
+                {formPhotoPreview ? (
+                  <Image src={formPhotoPreview} alt="Aperçu" width={64} height={64} className="w-16 h-16 rounded-lg object-cover" />
+                ) : (
+                  <div className="w-16 h-16 rounded-lg bg-[#1a2d42] border border-[#243552] flex items-center justify-center">
+                    <ShoppingBag className="w-5 h-5 text-slate-600" />
+                  </div>
+                )}
+                <div className="absolute inset-0 rounded-lg bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Camera className="w-4 h-4 text-white" />
+                </div>
+                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoSelected} />
+              </label>
+              <p className="text-xs text-slate-500">Photo (optionnel)</p>
+            </div>
             <div className="space-y-1.5">
-              <Label htmlFor="newTitle" className="text-slate-400">Article</Label>
+              <Label htmlFor="formTitle" className="text-slate-400">Article</Label>
               <Input
-                id="newTitle"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
+                id="formTitle"
+                value={formTitle}
+                onChange={(e) => setFormTitle(e.target.value)}
                 placeholder="ex: Air Jordan 4 Retro SE 95 Neon, taille 39"
                 className="bg-[#1a2d42] border-[#243552] text-slate-100"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="newPrice" className="text-slate-400">Prix (€)</Label>
+              <Label htmlFor="formPrice" className="text-slate-400">Prix (€)</Label>
               <Input
-                id="newPrice"
-                value={newPrice}
-                onChange={(e) => setNewPrice(e.target.value)}
+                id="formPrice"
+                value={formPrice}
+                onChange={(e) => setFormPrice(e.target.value)}
                 placeholder="ex: 128.72"
                 inputMode="decimal"
                 className="bg-[#1a2d42] border-[#243552] text-slate-100"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="newDate" className="text-slate-400">Date</Label>
+              <Label htmlFor="formDate" className="text-slate-400">Date</Label>
               <Input
-                id="newDate"
+                id="formDate"
                 type="date"
-                value={newDate}
-                onChange={(e) => setNewDate(e.target.value)}
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
                 className="bg-[#1a2d42] border-[#243552] text-slate-100"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="newSource" className="text-slate-400">Source (optionnel)</Label>
+              <Label htmlFor="formSource" className="text-slate-400">Source (optionnel)</Label>
               <Input
-                id="newSource"
-                value={newSource}
-                onChange={(e) => setNewSource(e.target.value)}
+                id="formSource"
+                value={formSource}
+                onChange={(e) => setFormSource(e.target.value)}
                 placeholder="ex: Whatnot"
                 className="bg-[#1a2d42] border-[#243552] text-slate-100"
               />
             </div>
-            {addError && <p className="text-xs text-red-400">{addError}</p>}
+            {formError && <p className="text-xs text-red-400">{formError}</p>}
           </div>
           <DialogFooter className="bg-transparent border-t-0">
-            <Button type="button" variant="outline" onClick={() => setAddOpen(false)} disabled={adding}>
+            <Button type="button" variant="outline" onClick={() => setFormOpen(false)} disabled={saving}>
               Annuler
             </Button>
-            <Button type="button" onClick={handleAddOrder} disabled={adding}>
-              {adding ? 'Ajout…' : 'Ajouter'}
+            <Button type="button" onClick={handleSubmitForm} disabled={saving}>
+              {saving ? 'Enregistrement…' : editingId ? 'Enregistrer' : 'Ajouter'}
             </Button>
           </DialogFooter>
         </DialogContent>
