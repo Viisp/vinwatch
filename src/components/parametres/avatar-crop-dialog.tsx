@@ -150,7 +150,7 @@ export function AvatarCropDialog({ file, onCancel, onCropped }: Props) {
 
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>Annuler</Button>
-          <Button onClick={handleConfirm}>Valider</Button>
+          <Button variant="outline" onClick={handleConfirm}>Valider</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -355,7 +355,7 @@ export function AchatsClient() {
             <Button type="button" variant="outline" onClick={() => setFormOpen(false)} disabled={saving}>
               Annuler
             </Button>
-            <Button type="button" onClick={handleSubmitForm} disabled={saving}>
+            <Button type="button" variant="outline" onClick={handleSubmitForm} disabled={saving}>
               {saving ? 'Enregistrement…' : editingId ? 'Enregistrer' : 'Ajouter'}
             </Button>
           </DialogFooter>

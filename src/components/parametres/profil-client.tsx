@@ -192,7 +192,7 @@ export function ProfilClient() {
 
           {nameMessage && <p className="text-xs text-slate-300">{nameMessage}</p>}
 
-          <Button size="sm" onClick={handleSaveName} disabled={savingName || !fullName.trim()}>
+          <Button variant="outline" size="sm" onClick={handleSaveName} disabled={savingName || !fullName.trim()}>
             {savingName ? 'Enregistrement…' : 'Enregistrer'}
           </Button>
         </CardContent>
@@ -242,6 +242,7 @@ export function ProfilClient() {
             {passwordMessage && <p className="text-xs text-slate-300">{passwordMessage}</p>}
 
             <Button
+              variant="outline"
               size="sm"
               onClick={handleSavePassword}
               disabled={savingPassword || !currentPassword || !newPassword}

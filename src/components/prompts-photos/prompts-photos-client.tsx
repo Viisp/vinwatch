@@ -369,7 +369,7 @@ export function PromptsPhotosClient() {
           <p className="text-xs leading-relaxed text-slate-300 whitespace-pre-wrap rounded-lg bg-[#0d1b2a] border border-[#243552] p-3">
             {resultText}
           </p>
-          <Button type="button" size="sm" onClick={handleCopy}>
+          <Button type="button" variant="outline" size="sm" onClick={handleCopy}>
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5" /> Copié
@@ -402,7 +402,7 @@ export function PromptsPhotosClient() {
       )}
 
       <div className="flex items-center justify-center gap-3 pt-6 border-t border-[#243552]">
-        <Button type="button" size="sm" onClick={handleSave} disabled={saving}>
+        <Button type="button" variant="outline" size="sm" onClick={handleSave} disabled={saving}>
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={requestReset} disabled={saving}>
