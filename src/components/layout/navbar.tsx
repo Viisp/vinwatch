@@ -14,6 +14,7 @@ const links = [
   { href: '/ventes', label: 'Ventes' },
   { href: '/marges', label: 'Marges' },
   { href: '/prompts-photos', label: 'Prompts' },
+  { href: '/annonces', label: 'Annonce' },
 ];
 
 export function Navbar() {
