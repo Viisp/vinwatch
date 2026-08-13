@@ -7,7 +7,11 @@ import { LogIn, User, LogOut, Settings } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
-export function AuthButton() {
+// `inline`: skip the popover entirely and render Paramètres/Se déconnecter
+// as plain stacked links instead -- used inside the mobile hamburger menu,
+// where nesting this component's own absolute-positioned dropdown inside
+// another dropdown panel made it render detached, off the visible menu.
+export function AuthButton({ inline = false, onNavigate }: { inline?: boolean; onNavigate?: () => void }) {
   const router = useRouter();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [open, setOpen] = useState(false);
@@ -39,6 +43,7 @@ export function AuthButton() {
     const supabase = createClient();
     await supabase.auth.signOut();
     setOpen(false);
+    onNavigate?.();
     router.push('/auth/signin');
   };
 
@@ -46,7 +51,7 @@ export function AuthButton() {
     return (
       <a href="/auth/signin" className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-[#00c896] hover:bg-[#1a2d42]/60 transition-colors">
         <LogIn className="w-4 h-4" />
-        <span className="hidden sm:inline">Connexion</span>
+        <span className={inline ? '' : 'hidden sm:inline'}>Connexion</span>
       </a>
     );
   }
@@ -55,6 +60,41 @@ export function AuthButton() {
   const googleName = user.user_metadata?.full_name as string | undefined;
   const displayName = googleName || user.email?.split('@')[0] || 'Profil';
   const avatarSrc = googleAvatar;
+
+  if (inline) {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 px-3 py-2">
+          {avatarSrc ? (
+            <Image src={avatarSrc} alt="Avatar" width={26} height={26} className="rounded-full object-cover shrink-0" />
+          ) : (
+            <div className="w-[26px] h-[26px] rounded-full bg-[#243552] flex items-center justify-center shrink-0">
+              <User className="w-3.5 h-3.5 text-[#00c896]" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-slate-100 truncate">{displayName}</p>
+            <p className="text-xs text-slate-500 truncate">{user.email}</p>
+          </div>
+        </div>
+        <Link
+          href="/parametres"
+          onClick={onNavigate}
+          className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-[#1a2d42]/60 transition-colors"
+        >
+          <Settings className="w-4 h-4" />
+          Paramètres
+        </Link>
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          Se déconnecter
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div ref={ref} className="relative">

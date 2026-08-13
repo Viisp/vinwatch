@@ -18,7 +18,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-[#0d1b2a]/95 backdrop-blur-sm border-t border-[#243552]">
-      <div className="flex items-stretch h-16">
+      <div className="flex items-stretch h-14">
         {tabs.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
           return (
@@ -30,8 +30,8 @@ export function BottomNav() {
                 active ? 'text-[#00c896]' : 'text-slate-500 hover:text-slate-300'
               )}
             >
-              <Icon className="w-5 h-5" strokeWidth={active ? 2.5 : 1.8} />
-              <span className="text-[10px] font-medium">{label}</span>
+              <Icon className="w-4 h-4" strokeWidth={active ? 2.5 : 1.8} />
+              <span className="text-[9px] font-medium">{label}</span>
             </Link>
           );
         })}

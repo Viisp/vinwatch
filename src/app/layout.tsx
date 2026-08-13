@@ -46,7 +46,7 @@ export default function RootLayout({
         <BeamsBackground intensity="medium" />
         <Navbar />
         <AuthGuard>
-          <main className="pt-16 pb-10 sm:pb-10 pb-24 flex-1">{children}</main>
+          <main className="pt-14 sm:pt-16 pb-20 sm:pb-10 flex-1">{children}</main>
         </AuthGuard>
         <FooterSection />
         <BottomNav />

@@ -27,11 +27,11 @@ export function Navbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#243552] bg-[#0d1b2a]/90 backdrop-blur-sm">
       <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center">
+        <div className="flex h-14 sm:h-16 items-center">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0" onClick={() => setMobileOpen(false)}>
-            <Image src="/logo.png" alt="VinWatch" width={32} height={32} className="rounded-lg object-cover" />
-            <span className="text-xl font-bold text-slate-100 tracking-tight">VinWatch</span>
+          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 shrink-0" onClick={() => setMobileOpen(false)}>
+            <Image src="/logo.png" alt="VinWatch" width={32} height={32} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover" />
+            <span className="text-base sm:text-xl font-bold text-slate-100 tracking-tight">VinWatch</span>
           </Link>
 
           {/* Desktop nav — centré avec expanding icons */}
@@ -58,14 +58,14 @@ export function Navbar() {
       {/* Mobile dropdown */}
       {mobileOpen && (
         <div className="sm:hidden border-t border-[#243552] bg-[#0d1b2a]/95 backdrop-blur-sm">
-          <nav className="px-4 py-3 space-y-1">
+          <nav className="px-3 py-2 space-y-0.5">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  'block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  'block px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                   pathname === link.href
                     ? 'bg-[#1a2d42] text-slate-100'
                     : 'text-slate-400 hover:text-slate-100 hover:bg-[#1a2d42]/60'
@@ -74,8 +74,8 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <div className="pt-2 border-t border-[#243552] flex items-center justify-between">
-              <AuthButton />
+            <div className="pt-2 border-t border-[#243552]">
+              <AuthButton inline onNavigate={() => setMobileOpen(false)} />
             </div>
           </nav>
         </div>
