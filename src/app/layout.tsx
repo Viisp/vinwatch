@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
 import { Navbar } from '@/components/layout/navbar';
 import { FooterSection } from '@/components/layout/footer';
@@ -31,6 +31,15 @@ export const metadata: Metadata = {
   },
 };
 
+// viewportFit: 'cover' lets the page extend under the iPhone's home-indicator
+// area so `env(safe-area-inset-bottom)` actually returns a non-zero value --
+// without it, the bottom tab bar sits flush against the screen edge, right
+// under the home-indicator gesture zone.
+export const viewport: Viewport = {
+  themeColor: '#00c896',
+  viewportFit: 'cover',
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -40,13 +49,12 @@ export default function RootLayout({
     <html lang="fr" className={`${geist.variable} dark`} suppressHydrationWarning>
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#00c896" />
       </head>
       <body className="min-h-screen bg-[#08111e] text-slate-100 antialiased flex flex-col">
         <BeamsBackground intensity="medium" />
         <Navbar />
         <AuthGuard>
-          <main className="pt-14 sm:pt-16 pb-20 sm:pb-10 flex-1">{children}</main>
+          <main className="pt-14 sm:pt-16 pb-24 sm:pb-10 flex-1">{children}</main>
         </AuthGuard>
         <FooterSection />
         <BottomNav />
