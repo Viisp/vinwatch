@@ -25,7 +25,10 @@ export function Navbar() {
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#243552] bg-[#0d1b2a]/90 backdrop-blur-sm">
+    <header
+      className="fixed top-0 left-0 right-0 z-50 border-b border-[#243552] bg-[#0d1b2a]/90 backdrop-blur-sm"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 sm:h-16 items-center">
           {/* Logo */}

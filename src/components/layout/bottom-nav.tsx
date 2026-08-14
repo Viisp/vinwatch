@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, TrendingUp, ShoppingBag, Scale, Camera } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, ShoppingBag, Scale, Camera, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const tabs = [
@@ -10,6 +10,7 @@ const tabs = [
   { href: '/ventes',         label: 'Ventes',          icon: TrendingUp },
   { href: '/marges',         label: 'Marges',          icon: Scale },
   { href: '/prompts-photos', label: 'Prompts',  icon: Camera },
+  { href: '/annonces',       label: 'Annonce',  icon: FileText },
 ];
 
 export function BottomNav() {
@@ -28,12 +29,12 @@ export function BottomNav() {
               key={href}
               href={href}
               className={cn(
-                'flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors',
+                'flex flex-1 flex-col items-center justify-center gap-0.5 px-0.5 transition-colors',
                 active ? 'text-[#00c896]' : 'text-slate-500 hover:text-slate-300'
               )}
             >
-              <Icon className="w-4 h-4" strokeWidth={active ? 2.5 : 1.8} />
-              <span className="text-[9px] font-medium">{label}</span>
+              <Icon className="w-[15px] h-[15px]" strokeWidth={active ? 2.5 : 1.8} />
+              <span className="text-[8px] leading-none font-medium">{label}</span>
             </Link>
           );
         })}
