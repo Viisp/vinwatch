@@ -4,18 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { AuthButton } from '@/components/auth/auth-button';
 import { ExpandingNav } from '@/components/layout/expanding-nav';
-
-const links = [
-  { href: '/', label: 'Dashboard' },
-  { href: '/achats', label: 'Achats' },
-  { href: '/ventes', label: 'Ventes' },
-  { href: '/marges', label: 'Marges' },
-  { href: '/prompts-photos', label: 'Prompts' },
-  { href: '/annonces', label: 'Annonce' },
-];
 
 export function Navbar() {
   const pathname = usePathname();
@@ -58,28 +48,11 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile dropdown */}
+      {/* Mobile dropdown — account only, navigation already lives in the bottom tab bar */}
       {mobileOpen && (
         <div className="sm:hidden border-t border-[#243552] bg-[#0d1b2a]/95 backdrop-blur-sm">
-          <nav className="px-3 py-2 space-y-0.5">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  'block px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  pathname === link.href
-                    ? 'bg-[#1a2d42] text-slate-100'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-[#1a2d42]/60'
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
-            <div className="pt-2 border-t border-[#243552]">
-              <AuthButton inline onNavigate={() => setMobileOpen(false)} />
-            </div>
+          <nav className="px-3 py-2">
+            <AuthButton inline onNavigate={() => setMobileOpen(false)} />
           </nav>
         </div>
       )}
