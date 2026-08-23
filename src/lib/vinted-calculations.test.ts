@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeOrdersSummary, matchOrderMargins, vintedOrderUrl, type StoredOrder } from './vinted-calculations';
+import { computeOrdersSummary, vintedOrderUrl, type StoredOrder } from './vinted-calculations';
 
 function order(overrides: Partial<StoredOrder>): StoredOrder {
   return {
@@ -48,58 +48,5 @@ describe('vintedOrderUrl', () => {
 
   it('returns null when there is no conversationId', () => {
     expect(vintedOrderUrl({ conversationId: null })).toBeNull();
-  });
-});
-
-describe('matchOrderMargins', () => {
-  it('links a sale to a purchase when one title contains the other', () => {
-    const orders = [
-      order({ id: 's1', orderType: 'sold', title: 'T-shirt Ralph Lauren rouge M', priceAmount: '20.0' }),
-      order({ id: 'a1', orderType: 'purchased', title: 'Ralph Lauren', priceAmount: '8.0' }),
-    ];
-
-    const [match] = matchOrderMargins(orders);
-
-    expect(match.sale.id).toBe('s1');
-    expect(match.purchase?.id).toBe('a1');
-    expect(match.margin).toBe(12.0);
-  });
-
-  it('leaves the margin null when no purchase title matches', () => {
-    const orders = [
-      order({ id: 's1', orderType: 'sold', title: 'Sweat Nike', priceAmount: '20.0' }),
-      order({ id: 'a1', orderType: 'purchased', title: 'Casquette Lacoste', priceAmount: '5.0' }),
-    ];
-
-    const [match] = matchOrderMargins(orders);
-
-    expect(match.purchase).toBeNull();
-    expect(match.margin).toBeNull();
-  });
-
-  it('never matches the same purchase to two different sales', () => {
-    const orders = [
-      order({ id: 's1', orderType: 'sold', title: 'Carhartt', priceAmount: '20.0', orderDate: '2026-07-02T00:00:00+02:00' }),
-      order({ id: 's2', orderType: 'sold', title: 'Carhartt', priceAmount: '15.0', orderDate: '2026-07-01T00:00:00+02:00' }),
-      order({ id: 'a1', orderType: 'purchased', title: 'Carhartt', priceAmount: '5.0' }),
-    ];
-
-    const matches = matchOrderMargins(orders);
-    const matchedPurchaseIds = matches.filter((m) => m.purchase).map((m) => m.purchase!.id);
-
-    expect(matchedPurchaseIds).toEqual(['a1']);
-    expect(matches.filter((m) => m.purchase === null)).toHaveLength(1);
-  });
-
-  it('reports an excluded sale as unmatched even if a purchase title would otherwise match', () => {
-    const orders = [
-      order({ id: 's1', orderType: 'sold', title: 'T-shirt Polo Ralph Lauren rouge', priceAmount: '10.99' }),
-      order({ id: 'a1', orderType: 'purchased', title: 'Ralph Lauren', priceAmount: '10.23' }),
-    ];
-
-    const [match] = matchOrderMargins(orders, new Set(['s1']));
-
-    expect(match.purchase).toBeNull();
-    expect(match.margin).toBeNull();
   });
 });

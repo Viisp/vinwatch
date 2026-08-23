@@ -5,7 +5,6 @@ const navLinks = [
   { title: 'Dashboard', href: '/' },
   { title: 'Achats', href: '/achats' },
   { title: 'Ventes', href: '/ventes' },
-  { title: 'Marges', href: '/marges' },
   { title: 'Prompts', href: '/prompts-photos' },
   { title: 'Annonce', href: '/annonces' },
 ];
